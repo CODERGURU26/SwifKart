@@ -25,7 +25,7 @@ const Home = ({ Slider }) => {
     const [loading, setLoading] = useState(true)
     const [productsLoading, setProductsLoading] = useState(true)
     const [address, setAddress] = useState(null)
-    const [updateUI , setUpdateUI] = useState(false)
+    const [updateUI, setUpdateUI] = useState(false)
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -149,12 +149,12 @@ const Home = ({ Slider }) => {
         const orderProduct = { ...product }
         orderProduct.userId = session.uid
         orderProduct.status = 'pending'
-        
+
         const amount = Math.max(0, orderProduct.price - (orderProduct.price * (orderProduct.discount || 0)) / 100)
-        
+
         // Validate amount
         if (amount <= 0) {
-            
+
             Swal.fire({
                 icon: 'error',
                 title: 'Invalid Amount',
@@ -165,15 +165,15 @@ const Home = ({ Slider }) => {
 
         try {
 
-            const col = collection(db , 'addresses')
-            const q = query(col , where('userId' ,'==' , session.uid))
-            const snapshot = await  getDocs(q)
-            if(snapshot.empty){
+            const col = collection(db, 'addresses')
+            const q = query(col, where('userId', '==', session.uid))
+            const snapshot = await getDocs(q)
+            if (snapshot.empty) {
                 new Swal({
-                    icon : 'info',
-                    title : 'Please Update Your Address For Accessing Payment Features !'
-                }).then((result)=>{
-                    if(result.isConfirmed){
+                    icon: 'info',
+                    title: 'Please Update Your Address For Accessing Payment Features !'
+                }).then((result) => {
+                    if (result.isConfirmed) {
                         navigate('/Profile')
                     }
                 })
@@ -189,18 +189,19 @@ const Home = ({ Slider }) => {
                 }
             })
 
-            
+
 
             console.log('Creating order for amount:', amount)
 
             // First test if server is reachable
             try {
-                await axios.get('http://localhost:8080/test', { timeout: 5000 });
+                await axios.get('https://swiftkart-is1rll31a-gururaj-krishna-sharmas-projects.vercel.app/api/razorpay'
+                    , { timeout: 5000 });
             } catch (testErr) {
                 throw new Error('Server is not reachable. Please make sure your backend server is running on port 8080.');
             }
 
-            const res = await axios.post('http://localhost:8080/orders', {
+            const res = await axios.post('https://swiftkart-is1rll31a-gururaj-krishna-sharmas-projects.vercel.app/api/razorpay', {
                 amount: Math.round(amount * 100) // Convert to paise
             }, {
                 headers: {
@@ -222,7 +223,7 @@ const Home = ({ Slider }) => {
                 handler: async function (response) {
                     try {
                         console.log("Payment success", response);
-                        
+
                         // Prepare order data
                         const orderData = {
                             ...orderProduct,
@@ -237,7 +238,7 @@ const Home = ({ Slider }) => {
 
                         // Save order to database
                         await addDoc(collection(db, 'orders'), orderData);
-                        
+
                         Swal.fire({
                             icon: "success",
                             title: "Payment Successful!",
@@ -245,7 +246,7 @@ const Home = ({ Slider }) => {
                             timer: 3000,
                             showConfirmButton: false
                         });
-                        
+
                         console.log('Order saved:', orderData);
                         navigate('/Profile');
                     } catch (saveError) {
@@ -292,7 +293,7 @@ const Home = ({ Slider }) => {
         } catch (err) {
             Swal.close() // Close loading dialog if open
             console.error('Payment error:', err);
-            
+
             let errorMessage = 'Something went wrong with the payment.'
             let errorTitle = 'Payment Failed'
 
@@ -337,7 +338,7 @@ const Home = ({ Slider }) => {
 
     return (
         <>
-            <Layout2 update = {updateUI}>
+            <Layout2 update={updateUI}>
                 <div>
                     {
                         Slider &&
@@ -403,11 +404,11 @@ const Home = ({ Slider }) => {
                                             />
                                             <h1 className="text-xl font-semibold mt-2">{item.title || 'Untitled Product'}</h1>
                                             <p className="text-gray-600 text-center px-2">
-                                                {item.description ? 
-                                                    (item.description.length > 45 ? 
-                                                        `${item.description.slice(0, 45)}...` : 
+                                                {item.description ?
+                                                    (item.description.length > 45 ?
+                                                        `${item.description.slice(0, 45)}...` :
                                                         item.description
-                                                    ) : 
+                                                    ) :
                                                     'No description available'
                                                 }
                                             </p>
