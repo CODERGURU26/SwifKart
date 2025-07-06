@@ -125,7 +125,7 @@ const Home = ({ Slider }) => {
         }
     }
 
-    const buyNow = async (product) => {
+   const buyNow = async (product) => {
     if (!session) {
         Swal.fire({
             icon: 'warning',
@@ -161,6 +161,7 @@ const Home = ({ Slider }) => {
     }
 
     try {
+        // Check address first
         const col = collection(db, 'addresses');
         const q = query(col, where('userId', '==', session.uid));
         const snapshot = await getDocs(q);
@@ -188,17 +189,29 @@ const Home = ({ Slider }) => {
             }
         });
 
-        // Create Razorpay order via backend (Vercel)
+        // Create Razorpay order with improved error handling
         const res = await axios.post('/api/razorpay', {
             amount: Math.round(amount * 100) // paise
         }, {
             headers: {
                 'Content-Type': 'application/json',
             },
-            timeout: 10000
+            timeout: 15000, // Increased timeout
+            validateStatus: function (status) {
+                return status < 500; // Resolve only if the status code is less than 500
+            }
         });
 
-        Swal.close(); // Stop loading
+        Swal.close();
+
+        // Check if response is successful
+        if (res.status !== 200) {
+            throw new Error(`Server returned status ${res.status}: ${res.data?.message || 'Unknown error'}`);
+        }
+
+        if (!res.data.orderId) {
+            throw new Error('Invalid response from payment server');
+        }
 
         // Load Razorpay SDK if not loaded
         if (!window.Razorpay) {
@@ -206,13 +219,13 @@ const Home = ({ Slider }) => {
                 const script = document.createElement('script');
                 script.src = 'https://checkout.razorpay.com/v1/checkout.js';
                 script.onload = resolve;
-                script.onerror = reject;
+                script.onerror = () => reject(new Error('Failed to load Razorpay SDK'));
                 document.body.appendChild(script);
             });
         }
 
         const options = {
-            key: "rzp_test_cuYR9RNqmpSXaE",
+            key: process.env.REACT_APP_RAZORPAY_KEY || "rzp_test_cuYR9RNqmpSXaE",
             amount: res.data.amount,
             currency: res.data.currency || "INR",
             name: "SwiftKart",
@@ -273,7 +286,6 @@ const Home = ({ Slider }) => {
                 title: 'Payment Failed',
                 text: response.error.description || 'Payment could not be processed.'
             });
-            navigate('/Failed');
         });
 
     } catch (err) {
@@ -283,14 +295,22 @@ const Home = ({ Slider }) => {
         let errorMessage = 'Something went wrong with the payment.';
         let errorTitle = 'Payment Failed';
 
+        // Better error categorization
         if (err.code === 'ECONNREFUSED' || err.message.includes('Network Error')) {
             errorTitle = 'Server Connection Failed';
-            errorMessage = 'Unable to connect to payment server.';
-        } else if (err.code === 'ECONNABORTED') {
+            errorMessage = 'Unable to connect to payment server. Please check your internet connection.';
+        } else if (err.code === 'ECONNABORTED' || err.message.includes('timeout')) {
             errorTitle = 'Request Timeout';
             errorMessage = 'The request took too long. Please try again.';
         } else if (err.response) {
-            errorMessage = err.response.data?.message || `Server error: ${err.response.status}`;
+            const status = err.response.status;
+            if (status >= 500) {
+                errorTitle = 'Server Error';
+                errorMessage = `Payment server is currently unavailable (Error ${status}). Please try again later.`;
+            } else if (status >= 400) {
+                errorTitle = 'Request Error';
+                errorMessage = err.response.data?.message || `Invalid request (Error ${status})`;
+            }
         } else if (err.message) {
             errorMessage = err.message;
         }
@@ -299,10 +319,8 @@ const Home = ({ Slider }) => {
             icon: 'error',
             title: errorTitle,
             text: errorMessage,
-            footer: `<small>Error details: ${err.message}</small>`
+            footer: `<small>If this problem persists, please contact support.</small>`
         });
-
-        navigate('/Failed');
     }
 };
 
