@@ -1,0 +1,465 @@
+import React, { useEffect, useState } from "react"
+import Layout from "./Layout"
+import img from './avtar/avtar.svg'
+import img2 from './Loader/a.webp'
+import firebaseAppConfig from "../../../util/firebase-config"
+import { onAuthStateChanged, getAuth, updateProfile } from "firebase/auth"
+import { useNavigate } from "react-router-dom"
+import Swal from "sweetalert2"
+import { updatePassword } from "firebase/auth"
+import { EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
+import { getFirestore, collection, addDoc, getDocs, query, where, doc, updateDoc } from "firebase/firestore"
+
+const auth = getAuth(firebaseAppConfig)
+const db = getFirestore(firebaseAppConfig)
+const Setting = () => {
+    const navigate = useNavigate()
+    const [orders, setOrders] = useState([])
+    const [loading, setLoading] = useState(false)
+    const [session, setSession] = useState(null)
+    const [image, setImage] = useState(img)
+    const [newPassword, setNewPassword] = useState('')
+    const [currentPassword, setCurrentPassword] = useState("")
+
+    const [formValue, setFormVale] = useState({
+        Fullname: '',
+        Email: '',
+        Mobile: ''
+    }
+    )
+    const [addressFormValue, setAddressFormValue] = useState({
+        Address: '',
+        City: '',
+        State: '',
+        Country: '',
+        Pincode: '',
+        userId: '',
+        Mobile: ''
+    })
+
+    const [isAddress, setIsAddress] = useState(false)
+    const [DocId, setDocId] = useState(null)
+    const [Isupdated, SetIsUpdated] = useState(false)
+    useEffect(() => {
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                setSession(user)
+            }
+            else {
+                setSession(false)
+                navigate('/Login')
+            }
+        })
+    }, [])
+
+    useEffect(() => {
+        const req = async () => {
+            if (session) {
+                setFormVale({
+                    ...formValue,
+                    Fullname: session.displayName,
+                    Mobile: (session.phoneNumber ? session.phoneNumber : '')
+                })
+
+
+
+                //Fetch Address
+                const col = collection(db, 'addresses')
+                const q = query(col, where("userId", "==", session.uid))
+                const snapshot = await getDocs(q)
+                snapshot.forEach((docs) => {
+                    setDocId(docs.id)
+                    const address = docs.data()
+                    setIsAddress(!snapshot.empty)
+                    setAddressFormValue({
+                        ...addressFormValue,
+                        ...address
+                    })
+                })
+            }
+
+        }
+        req()
+    }
+        , [session, Isupdated])
+
+    useEffect(() => {
+        const req = async () => {
+            if (session) {
+                const col = collection(db, 'orders')
+                const q = query(col, where('userId', '==', session.uid))
+                const temp = []
+                const snapshot = await getDocs(q)
+                snapshot.forEach((docs) => {
+                    temp.push(docs.data())
+                })
+                setOrders(temp)
+            }
+        }
+        req()
+    }, [session])
+
+    if (session === null) {
+        return (
+            <h1 className="text-center mt-100 font-bold text-3xl">Loading...</h1>
+        )
+    }
+
+    const handleForm = (e) => {
+        const input = e.target
+        const name = input.name
+        const value = input.value
+
+        setFormVale({
+            ...formValue,
+            [name]: value
+        })
+
+    }
+
+    const handleAddressFormValue = (e) => {
+        const input = e.target
+        const name = input.name
+        const value = input.value
+
+        setAddressFormValue({
+            ...addressFormValue,
+            [name]: value
+        })
+    }
+
+    const onProfileChange = async (e) => {
+        const file = e.target.files[0]
+        if (!file) return ('Please First Select An Image !!')
+
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('upload_preset', 'SwiftKart')
+        formData.append('cloud_name', 'dyimyol9r')
+
+        try {
+            setLoading(true)
+            const response = await fetch('https://api.cloudinary.com/v1_1/dyimyol9r/image/upload', {
+                method: 'POST',
+                body: formData
+            })
+
+            const data = await response.json()
+            console.log('Upload Image Url', data.secure_url)
+            setImage(data.secure_url)
+        }
+        catch (err) {
+            alert(err.message)
+        }
+        finally {
+            setLoading(false)
+        }
+    }
+    const handleSubmit = async (e) => {
+        e.preventDefault()
+        await updateProfile(auth.currentUser, {
+            displayName: formValue.Fullname,
+            phoneNumber: formValue.Mobile
+        })
+        new Swal({
+            icon: 'success',
+            title: 'Profile Updated !'
+        })
+    }
+
+    const saveAddress = async (e) => {
+        e.preventDefault()
+        try {
+
+            await addDoc(collection(db, "addresses"), {
+                ...addressFormValue,
+                userId: session.uid
+            })
+
+            setIsAddress(true)
+            SetIsUpdated(!Isupdated)
+            new Swal({
+                icon: 'success',
+                title: 'Address Saved Successfully!'
+            })
+        }
+        catch (err) {
+            new Swal({
+                icon: 'error',
+                title: 'OOPS! Something Went Wrong '
+            })
+        }
+    }
+
+    const updateAddress = async (e) => {
+
+        try {
+            e.preventDefault()
+            const ref = doc(db, "addresses", DocId)
+            await updateDoc(ref, addressFormValue)
+
+            new Swal({
+                icon: 'success',
+                title: 'Address Updated ! '
+            })
+        }
+        catch (err) {
+            new Swal({
+                icon: 'error',
+                title: 'OOPS! Something Went Wrong '
+            })
+        }
+    }
+
+    const getStatusColor = (status) => {
+        if (status === 'Pending') {
+            return 'bg-yellow-600 text-white'
+        }
+        else if (status === 'Processing') {
+            return 'bg-blue-600 text-white'
+        }
+        else if (status === 'Dispatched') {
+            return 'bg-indigo-600 text-white'
+        }
+        else if (status === 'Delivered') {
+            return 'bg-green-600 text-white'
+        }
+        else if (status === 'Returned') {
+            return 'bg-red-600 text-white'
+        }
+    }
+
+    const handleChangePassword = async (e) => {
+        e.preventDefault();
+
+        if (!newPassword || newPassword.length < 6) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Password must be at least 6 characters'
+            });
+            return;
+        }
+
+        try {
+            const user = auth.currentUser;
+
+            // Re-authenticate the user first
+            const credential = EmailAuthProvider.credential(user.email, currentPassword);
+            await reauthenticateWithCredential(user, credential);
+
+            // Then update password
+            await updatePassword(user, newPassword);
+            Swal.fire({
+                icon: 'success',
+                title: 'Password updated successfully'
+            });
+
+            // Clear inputs
+            setCurrentPassword("")
+            setNewPassword("")
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error updating password',
+                text: error.message
+            });
+        }
+    };
+
+
+    return (
+        <>
+            <Layout>
+                
+                <div className="p-8 my-8 md:w-7/12 mx-auto bg-white shadow-lg ">
+                    <div className="flex items-center gap-2">
+                        <i className="ri-user-smile-fill text-2xl"></i>
+                        <h1 className="font-bold text-2xl">My Profile</h1>
+                    </div>
+                    <hr className="my-6" />
+                    <div className=" w-fit mx-auto relative">
+                        {
+                            loading ?
+                                <img src={img2} className="w-[100px] mb-8 rounded-full" />
+                                :
+                                <img src={image} className="w-[100px] mb-8 rounded-full" />
+                        }
+
+                        <input
+                            type="file"
+                            accept="image/*"
+                            className="opacity-0 absolute top-0 left-0 w-full h-full"
+                            onChange={onProfileChange}
+                        />
+                    </div>
+                    <div>
+                        <form className="grid grid-cols-2 gap-6" onSubmit={handleSubmit}>
+                            <div className="flex flex-col gap-2">
+                                <label className="font-bold text-xl">Fullname</label>
+                                <input
+                                    onChange={handleForm}
+                                    name="Fullname"
+                                    type="text"
+                                    className="p-2 border border-gray-400"
+                                    value={formValue.Fullname}
+                                />
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                <label className="font-bold text-xl">Email</label>
+                                <input
+                                    readOnly
+                                    onChange={handleForm}
+                                    name="Email"
+                                    type="text"
+                                    className="p-2 border border-gray-400"
+                                    value={session.email}
+                                />
+                            </div>
+
+                            <div />
+                            <div className="col-span-2">
+                                <button className="hover:bg-green-400 w-fit rounded-[10px] bg-blue-600 text-white font-bold p-2">
+                                    <i className="ri-save-3-line mr-2"></i>
+                                    Update Profile
+                                </button>
+                            </div>
+
+
+                        </form>
+                    </div>
+
+                </div>
+
+                <div className="p-8 my-8 md:w-7/12 mx-auto bg-white shadow-lg ">
+                    <div className="flex items-center gap-2">
+                        <i className="ri-truck-fill mr-2 text-4xl"></i>
+                        <h1 className="font-bold text-2xl">Delivery Address</h1>
+                    </div>
+                    <hr className="my-6" />
+
+                    <div>
+                        <form className="grid grid-cols-2 gap-6" onSubmit={isAddress ? updateAddress : saveAddress}>
+                            <div className="flex flex-col gap-2 col-span-2">
+                                <label className="font-bold text-xl">Area/Street/Village</label>
+                                <input
+                                    onChange={handleAddressFormValue}
+                                    name="Address"
+                                    type="text"
+                                    className="p-2 border border-gray-400"
+                                    value={addressFormValue.Address}
+                                />
+                            </div>
+
+                            <div className="flex flex-col gap-2">
+                                <label className="font-bold text-xl">City</label>
+                                <input
+
+                                    onChange={handleAddressFormValue}
+                                    name="City"
+                                    type="text"
+                                    className="p-2 border border-gray-400"
+                                    value={addressFormValue.City}
+                                />
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                <label className="font-bold text-xl">State</label>
+                                <input
+                                    onChange={handleAddressFormValue}
+                                    name="State"
+                                    type="text"
+                                    className="p-2 border border-gray-400"
+                                    value={addressFormValue.State}
+                                />
+                            </div>
+                            <div className="flex flex-col">
+                                <label className="text-xl font-bold">Country</label>
+                                <input
+                                    onChange={handleAddressFormValue}
+                                    type="text"
+                                    name="Country"
+                                    className="p-2 border border-gray-400"
+                                    value={addressFormValue.Country}
+                                />
+                            </div>
+                            <div className="flex flex-col">
+                                <label className="text-xl font-bold">Pincode</label>
+                                <input
+                                    onChange={handleAddressFormValue}
+                                    type="number"
+                                    name="Pincode"
+                                    className="p-2 border border-gray-400"
+                                    value={addressFormValue.Pincode}
+                                />
+                            </div>
+                            <div className="flex flex-col gap-2 " >
+                                <label className="font-bold text-xl">Mobile</label>
+                                <input
+                                    onChange={handleAddressFormValue}
+                                    name="Mobile"
+                                    type="number"
+                                    className="p-2 border border-gray-400"
+                                    value={addressFormValue.Mobile}
+                                />
+                            </div>
+                            <br />
+                            {
+                                isAddress ?
+                                    <button className="hover:bg-green-400 w-fit rounded-[10px] bg-blue-600 text-white font-bold p-2">
+                                        <i className="ri-save-3-line mr-2"></i>
+                                        Update Address
+                                    </button>
+                                    :
+                                    <button className="hover:bg-blue-400 w-fit rounded-[10px] bg-green-600 text-white font-bold p-2">
+                                        <i className="ri-save-3-line mr-2"></i>
+                                        Submit
+                                    </button>
+                            }
+
+
+                        </form>
+                    </div>
+                </div>
+                <div className="p-8 my-8 md:w-7/12 mx-auto bg-white shadow-lg">
+                    <div className="flex items-center gap-2">
+                        <i className="ri-lock-password-fill text-2xl"></i>
+                        <h1 className="font-bold text-2xl">Update Password</h1>
+                    </div>
+                    <hr className="my-6" />
+
+                    <form className="flex flex-col gap-4" onSubmit={handleChangePassword}>
+                        <label className="font-bold text-xl">Current Password</label>
+                        <input
+                            type="password"
+                            className="p-2 border border-gray-400"
+                            placeholder="Enter current password"
+                            value={currentPassword}
+                            onChange={(e) => setCurrentPassword(e.target.value)}
+                            required
+                        />
+
+                        <label className="font-bold text-xl">New Password</label>
+                        <input
+                            type="password"
+                            className="p-2 border border-gray-400"
+                            placeholder="Enter new password"
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            required
+                        />
+
+                        <button
+                            type="submit"
+                            className="bg-blue-600 hover:bg-green-600 text-white font-semibold p-2 rounded"
+                        >
+                            <i className="ri-key-line mr-2"></i>
+                            Update Password
+                        </button>
+                    </form>
+                </div>
+
+            </Layout>
+
+        </>
+    )
+}
+export default Setting
