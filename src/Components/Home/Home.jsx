@@ -126,199 +126,185 @@ const Home = ({ Slider }) => {
     }
 
     const buyNow = async (product) => {
-        if (!session) {
+    if (!session) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Please login first',
+            text: 'You need to be logged in to make a purchase.'
+        });
+        return;
+    }
+
+    // Validate product data
+    if (!product.price || product.price <= 0) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Invalid Product',
+            text: 'Product price is not valid.'
+        });
+        return;
+    }
+
+    const orderProduct = { ...product };
+    orderProduct.userId = session.uid;
+    orderProduct.status = 'pending';
+
+    const amount = Math.max(0, orderProduct.price - (orderProduct.price * (orderProduct.discount || 0)) / 100);
+
+    if (amount <= 0) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Invalid Amount',
+            text: 'Order amount must be greater than zero.'
+        });
+        return;
+    }
+
+    try {
+        const col = collection(db, 'addresses');
+        const q = query(col, where('userId', '==', session.uid));
+        const snapshot = await getDocs(q);
+
+        if (snapshot.empty) {
             Swal.fire({
-                icon: 'warning',
-                title: 'Please login first',
-                text: 'You need to be logged in to make a purchase.'
-            })
-            return
-        }
-
-        // Validate product data
-        if (!product.price || product.price <= 0) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Invalid Product',
-                text: 'Product price is not valid.'
-            })
-            return
-        }
-
-        // Create a copy to avoid mutating the original product
-        const orderProduct = { ...product }
-        orderProduct.userId = session.uid
-        orderProduct.status = 'pending'
-
-        const amount = Math.max(0, orderProduct.price - (orderProduct.price * (orderProduct.discount || 0)) / 100)
-
-        // Validate amount
-        if (amount <= 0) {
-
-            Swal.fire({
-                icon: 'error',
-                title: 'Invalid Amount',
-                text: 'Order amount must be greater than zero.'
-            })
-            return
-        }
-
-        try {
-
-            const col = collection(db, 'addresses')
-            const q = query(col, where('userId', '==', session.uid))
-            const snapshot = await getDocs(q)
-            if (snapshot.empty) {
-                new Swal({
-                    icon: 'info',
-                    title: 'Please Update Your Address For Accessing Payment Features !'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        navigate('/Profile')
-                    }
-                })
-                return false
-            }
-            // Show loading state
-            Swal.fire({
-                title: 'Processing...',
-                text: 'Creating payment order',
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading()
+                icon: 'info',
+                title: 'Please Update Your Address For Accessing Payment Features!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    navigate('/Profile');
                 }
-            })
-
-
-
-            console.log('Creating order for amount:', amount)
-
-            // First test if server is reachable
-            try {
-                await axios.get('https://swiftkart-is1rll31a-gururaj-krishna-sharmas-projects.vercel.app/api/razorpay'
-                    , { timeout: 5000 });
-            } catch (testErr) {
-                throw new Error('Server is not reachable. Please make sure your backend server is running on port 8080.');
-            }
-
-            const res = await axios.post('https://swiftkart-is1rll31a-gururaj-krishna-sharmas-projects.vercel.app/api/razorpay', {
-                amount: Math.round(amount * 100) // Convert to paise
-            }, {
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                timeout: 10000 // 10 second timeout
             });
+            return;
+        }
 
-            console.log('Order created successfully:', res.data)
-            Swal.close() // Close loading dialog
+        const address = snapshot.docs[0].data();
 
-            const options = {
-                key: "rzp_test_cuYR9RNqmpSXaE", // Test key from Razorpay dashboard
-                amount: res.data.amount,        // Amount in paise
-                currency: res.data.currency || "INR",
-                name: "SwiftKart",
-                description: orderProduct.title || 'Product Purchase',
-                order_id: res.data.orderId,     // Must match exactly with order.id from backend
-                handler: async function (response) {
-                    try {
-                        console.log("Payment success", response);
+        Swal.fire({
+            title: 'Processing...',
+            text: 'Creating payment order',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
 
-                        // Prepare order data
-                        const orderData = {
-                            ...orderProduct,
-                            email: session.email || 'N/A',
-                            customerName: session.displayName || session.email?.split('@')[0] || 'N/A',
-                            address: address || { Mobile: 'N/A' },
-                            date: new Date(), // Use Firebase Timestamp format
-                            orderId: response.razorpay_order_id || 'N/A',
-                            paymentId: response.razorpay_payment_id || 'N/A',
-                            price: amount // Final calculated price
-                        };
+        // Create Razorpay order via backend (Vercel)
+        const res = await axios.post('/api/razorpay', {
+            amount: Math.round(amount * 100) // paise
+        }, {
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            timeout: 10000
+        });
 
-                        // Save order to database
-                        await addDoc(collection(db, 'orders'), orderData);
+        Swal.close(); // Stop loading
 
-                        Swal.fire({
-                            icon: "success",
-                            title: "Payment Successful!",
-                            text: `Payment ID: ${response.razorpay_payment_id}`,
-                            timer: 3000,
-                            showConfirmButton: false
-                        });
+        // Load Razorpay SDK if not loaded
+        if (!window.Razorpay) {
+            await new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+                script.onload = resolve;
+                script.onerror = reject;
+                document.body.appendChild(script);
+            });
+        }
 
-                        console.log('Order saved:', orderData);
-                        navigate('/Profile');
-                    } catch (saveError) {
-                        console.error('Error saving order:', saveError);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Order Save Failed',
-                            text: 'Payment was successful but failed to save order details.'
-                        });
-                    }
-                },
-                notes: {
-                    name: session.displayName || session.email
-                },
-                prefill: {
-                    email: session?.email || "customer@example.com",
-                    contact: address?.Mobile || session?.phoneNumber || "9999999999"
-                },
-                theme: {
-                    color: "#3399cc"
+        const options = {
+            key: "rzp_test_cuYR9RNqmpSXaE",
+            amount: res.data.amount,
+            currency: res.data.currency || "INR",
+            name: "SwiftKart",
+            description: orderProduct.title || "Product Purchase",
+            order_id: res.data.orderId,
+            handler: async function (response) {
+                try {
+                    const orderData = {
+                        ...orderProduct,
+                        email: session.email || 'N/A',
+                        customerName: session.displayName || session.email?.split('@')[0] || 'N/A',
+                        address: address || { Mobile: 'N/A' },
+                        date: new Date(),
+                        orderId: response.razorpay_order_id || 'N/A',
+                        paymentId: response.razorpay_payment_id || 'N/A',
+                        price: amount
+                    };
+
+                    await addDoc(collection(db, 'orders'), orderData);
+
+                    Swal.fire({
+                        icon: "success",
+                        title: "Payment Successful!",
+                        text: `Payment ID: ${response.razorpay_payment_id}`,
+                        timer: 3000,
+                        showConfirmButton: false
+                    });
+
+                    navigate('/Profile');
+                } catch (saveError) {
+                    console.error('Error saving order:', saveError);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Order Save Failed',
+                        text: 'Payment was successful but failed to save order details.'
+                    });
                 }
-            };
-
-            console.log('Razorpay options:', options); // Debug log
-
-            // Check if Razorpay is loaded
-            if (!window.Razorpay) {
-                throw new Error('Razorpay SDK not loaded. Please check your internet connection.');
+            },
+            notes: {
+                name: session.displayName || session.email
+            },
+            prefill: {
+                email: session?.email || "customer@example.com",
+                contact: address?.Mobile || session?.phoneNumber || "9999999999"
+            },
+            theme: {
+                color: "#3399cc"
             }
+        };
 
-            const razor = new window.Razorpay(options);
-            razor.open();
+        const razor = new window.Razorpay(options);
+        razor.open();
 
-            razor.on('payment.failed', function (response) {
-                console.error('Payment failed:', response.error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Payment Failed',
-                    text: response.error.description || 'Payment could not be processed.'
-                });
-                navigate('/Failed');
-            });
-
-        } catch (err) {
-            Swal.close() // Close loading dialog if open
-            console.error('Payment error:', err);
-
-            let errorMessage = 'Something went wrong with the payment.'
-            let errorTitle = 'Payment Failed'
-
-            if (err.code === 'ECONNREFUSED' || err.message.includes('Network Error')) {
-                errorTitle = 'Server Connection Failed'
-                errorMessage = 'Unable to connect to payment server. Please check if the server is running.'
-            } else if (err.code === 'ECONNABORTED') {
-                errorTitle = 'Request Timeout'
-                errorMessage = 'The request took too long. Please try again.'
-            } else if (err.response) {
-                errorMessage = err.response.data?.message || `Server error: ${err.response.status}`
-            } else if (err.message) {
-                errorMessage = err.message
-            }
-
+        razor.on('payment.failed', function (response) {
+            console.error('Payment failed:', response.error);
             Swal.fire({
                 icon: 'error',
-                title: errorTitle,
-                text: errorMessage,
-                footer: `<small>Error details: ${err.message}</small>`
+                title: 'Payment Failed',
+                text: response.error.description || 'Payment could not be processed.'
             });
-
             navigate('/Failed');
+        });
+
+    } catch (err) {
+        Swal.close();
+        console.error('Payment error:', err);
+
+        let errorMessage = 'Something went wrong with the payment.';
+        let errorTitle = 'Payment Failed';
+
+        if (err.code === 'ECONNREFUSED' || err.message.includes('Network Error')) {
+            errorTitle = 'Server Connection Failed';
+            errorMessage = 'Unable to connect to payment server.';
+        } else if (err.code === 'ECONNABORTED') {
+            errorTitle = 'Request Timeout';
+            errorMessage = 'The request took too long. Please try again.';
+        } else if (err.response) {
+            errorMessage = err.response.data?.message || `Server error: ${err.response.status}`;
+        } else if (err.message) {
+            errorMessage = err.message;
         }
-    };
+
+        Swal.fire({
+            icon: 'error',
+            title: errorTitle,
+            text: errorMessage,
+            footer: `<small>Error details: ${err.message}</small>`
+        });
+
+        navigate('/Failed');
+    }
+};
 
     const calculateDiscountedPrice = (price, discount = 0) => {
         if (!price || price < 0) return 0;
