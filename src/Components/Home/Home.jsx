@@ -125,7 +125,7 @@ const Home = ({ Slider }) => {
         }
     }
 
-   const buyNow = async (product) => {
+  const buyNow = async (product) => {
     if (!session) {
         Swal.fire({
             icon: 'warning',
@@ -189,27 +189,75 @@ const Home = ({ Slider }) => {
             }
         });
 
-        // Create Razorpay order with improved error handling
-        const res = await axios.post('/api/razorpay', {
-            amount: Math.round(amount * 100) // paise
-        }, {
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            timeout: 15000, // Increased timeout
-            validateStatus: function (status) {
-                return status < 500; // Resolve only if the status code is less than 500
+        // Debug logging
+        console.log('Creating payment order for amount:', amount);
+        console.log('Request payload:', { amount: Math.round(amount * 100) });
+
+        // Create Razorpay order with detailed error handling
+        let response;
+        try {
+            response = await axios.post('/api/razorpay', {
+                amount: Math.round(amount * 100) // paise
+            }, {
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                timeout: 15000,
+            });
+        } catch (axiosError) {
+            console.error('Axios error:', axiosError);
+            
+            // Close loading dialog
+            Swal.close();
+            
+            let errorMessage = 'Unable to create payment order';
+            let errorTitle = 'Payment Error';
+            
+            if (axiosError.response) {
+                const status = axiosError.response.status;
+                const data = axiosError.response.data;
+                
+                console.error('Response error:', {
+                    status,
+                    data,
+                    statusText: axiosError.response.statusText
+                });
+                
+                if (status === 500) {
+                    errorTitle = 'Server Error';
+                    errorMessage = data?.message || 'Payment server is experiencing issues. Please try again later.';
+                } else if (status === 400) {
+                    errorTitle = 'Request Error';
+                    errorMessage = data?.message || 'Invalid payment request.';
+                } else if (status === 404) {
+                    errorTitle = 'API Not Found';
+                    errorMessage = 'Payment API endpoint not found. Please contact support.';
+                } else {
+                    errorMessage = data?.message || `Server error (${status})`;
+                }
+            } else if (axiosError.request) {
+                errorTitle = 'Connection Error';
+                errorMessage = 'Unable to connect to payment server. Please check your internet connection.';
+            } else {
+                errorMessage = axiosError.message || 'Unknown error occurred';
             }
-        });
+            
+            Swal.fire({
+                icon: 'error',
+                title: errorTitle,
+                text: errorMessage,
+                footer: '<small>If this problem persists, please contact support.</small>'
+            });
+            
+            return;
+        }
 
         Swal.close();
 
-        // Check if response is successful
-        if (res.status !== 200) {
-            throw new Error(`Server returned status ${res.status}: ${res.data?.message || 'Unknown error'}`);
-        }
+        console.log('Payment order created successfully:', response.data);
 
-        if (!res.data.orderId) {
+        // Validate response
+        if (!response.data.success || !response.data.orderId) {
             throw new Error('Invalid response from payment server');
         }
 
@@ -225,12 +273,12 @@ const Home = ({ Slider }) => {
         }
 
         const options = {
-            key: process.env.REACT_APP_RAZORPAY_KEY || "rzp_test_cuYR9RNqmpSXaE",
-            amount: res.data.amount,
-            currency: res.data.currency || "INR",
+            key: "rzp_test_cuYR9RNqmpSXaE",
+            amount: response.data.amount,
+            currency: response.data.currency || "INR",
             name: "SwiftKart",
             description: orderProduct.title || "Product Purchase",
-            order_id: res.data.orderId,
+            order_id: response.data.orderId,
             handler: async function (response) {
                 try {
                     const orderData = {
@@ -290,36 +338,13 @@ const Home = ({ Slider }) => {
 
     } catch (err) {
         Swal.close();
-        console.error('Payment error:', err);
-
-        let errorMessage = 'Something went wrong with the payment.';
-        let errorTitle = 'Payment Failed';
-
-        // Better error categorization
-        if (err.code === 'ECONNREFUSED' || err.message.includes('Network Error')) {
-            errorTitle = 'Server Connection Failed';
-            errorMessage = 'Unable to connect to payment server. Please check your internet connection.';
-        } else if (err.code === 'ECONNABORTED' || err.message.includes('timeout')) {
-            errorTitle = 'Request Timeout';
-            errorMessage = 'The request took too long. Please try again.';
-        } else if (err.response) {
-            const status = err.response.status;
-            if (status >= 500) {
-                errorTitle = 'Server Error';
-                errorMessage = `Payment server is currently unavailable (Error ${status}). Please try again later.`;
-            } else if (status >= 400) {
-                errorTitle = 'Request Error';
-                errorMessage = err.response.data?.message || `Invalid request (Error ${status})`;
-            }
-        } else if (err.message) {
-            errorMessage = err.message;
-        }
+        console.error('Unexpected payment error:', err);
 
         Swal.fire({
             icon: 'error',
-            title: errorTitle,
-            text: errorMessage,
-            footer: `<small>If this problem persists, please contact support.</small>`
+            title: 'Payment Error',
+            text: err.message || 'An unexpected error occurred during payment processing.',
+            footer: '<small>Please try again or contact support if the problem persists.</small>'
         });
     }
 };
