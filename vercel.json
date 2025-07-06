@@ -1,8 +1,21 @@
 {
+  "functions": {
+    "api/**/*.js": {
+      "maxDuration": 30
+    }
+  },
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    },
+    {
+      "source": "/((?!api).*)",
       "destination": "/index.html"
     }
-  ]
+  ],
+  "env": {
+    "RAZORPAY_KEY_ID": "rzp_test_cuYR9RNqmpSXaE",
+    "RAZORPAY_KEY_SECRET": "MjdWG86eDb6feQRzQJ9UhDGB"
+  }
 }
