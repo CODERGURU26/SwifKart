@@ -128,12 +128,12 @@ const Cart = () => {
 
             // First test if server is reachable
             try {
-                await axios.get('/api/razorpay', { timeout: 5000 });
+                await axios.get('https://swiftkart-rho.vercel.app//api/razorpay', { timeout: 5000 });
             } catch (testErr) {
                 throw new Error('Server is not reachable. Please make sure your backend server is running on port 8080.');
             }
 
-            const res = await axios.post('/api/razorpay', {
+            const res = await axios.post('https://swiftkart-rho.vercel.app//api/razorpay', {
                 amount: Math.round(amount * 100) // Convert to paise
             }, {
                 headers: {
