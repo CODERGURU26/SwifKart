@@ -37,7 +37,7 @@ const Layout2 = ({ children, update }) => {
             label: 'Products',
             link: '/Products2'
         },
-        
+
         {
             label: 'Contact-Us',
             link: '/ContactUs'
@@ -59,28 +59,28 @@ const Layout2 = ({ children, update }) => {
 
     }, [session, update])
 
-   useEffect(() => {
-  const fetchRole = async () => {
-    if (session) {
-      console.log("Fetching role for UID:", session.uid)
-      const col = collection(db, 'customers')
-      const q = query(col, where('userId', '==', session.uid))
-      const snapshot = await getDocs(q)
+    useEffect(() => {
+        const fetchRole = async () => {
+            if (session) {
+                console.log("Fetching role for UID:", session.uid)
+                const col = collection(db, 'customers')
+                const q = query(col, where('userId', '==', session.uid))
+                const snapshot = await getDocs(q)
 
-      if (snapshot.empty) {
-        console.log("❌ No matching user found in 'customers'")
-      } else {
-        snapshot.forEach((doc) => {
-          const data = doc.data()
-          console.log("✅ Found user:", data)
-          setRole(data.role)
-        })
-      }
-    }
-  }
+                if (snapshot.empty) {
+                    console.log("❌ No matching user found in 'customers'")
+                } else {
+                    snapshot.forEach((doc) => {
+                        const data = doc.data()
+                        console.log("✅ Found user:", data)
+                        setRole(data.role)
+                    })
+                }
+            }
+        }
 
-  fetchRole()
-}, [session])
+        fetchRole()
+    }, [session])
 
     if (session === null)
         return (
@@ -135,11 +135,11 @@ const Layout2 = ({ children, update }) => {
                                     accountMenu &&
                                     <div className="bg-white shadow-rose-200   flex flex-col items-start  shadow-xl  animate__animated animate__fadeInDown">
                                         {
-                                    
+
 
                                             (role && role === 'admin') &&
                                             <Link to='/Products' className="hover:bg-rose-200 p-2">
-                                               <i className="ri-admin-line mr-2"></i>
+                                                <i className="ri-admin-line mr-2"></i>
                                                 Admin Panel</Link>
                                         }
 
@@ -182,8 +182,16 @@ const Layout2 = ({ children, update }) => {
                                     )
                                 })
                             }
-                            <li><a href="/Login" className="hover:text-blue-400">Login</a></li>
-                            <li><a href="/SignUp" className="hover:text-blue-400" >SignUp</a></li>
+                            {
+                                !session &&
+                                <>
+                                    <button className="text-xl bg-blue-600 text-white font-semibold p-2 rounded-[10px] hover:bg-rose-600 text-center">
+                                        <a href="/Login">Login</a></button>
+
+                                    <button className="text-xl bg-red-600 transition duration-150 text-white font-semibold p-2 rounded-[10px] hover:bg-blue-600 text-center">
+                                        <a href="/SignUp">SignUp</a></button>
+                                </>
+                            }
                         </ul>
 
                     </div>
