@@ -37,10 +37,7 @@ const Layout2 = ({ children, update }) => {
             label: 'Products',
             link: '/Products2'
         },
-        {
-            label: 'Category',
-            link: '/Category'
-        },
+        
         {
             label: 'Contact-Us',
             link: '/ContactUs'

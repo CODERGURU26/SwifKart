@@ -16,7 +16,6 @@ import Dashboard from "./Components/Admin/Dashboard"
 import Customers from "./Components/Admin/Customers"
 
 import Home from "./Components/Home/Home"
-import Category from "./Components/Home/Category"
 
 import Login from "./Components/Admin/Login"
 import SignUp from "./Components/Admin/SignUp"
@@ -38,7 +37,6 @@ const App = () => {
           <Route path="/Cart" element={<Cart />} />
           <Route path="/Profile" element={<Profile />} />
           <Route path='/ContactUs' element={<ContactUs />} />
-          <Route path="/Category" element={<Category />} />
           <Route path="/Products2" element={<Home />} />
 
           <Route element={<AdminGuard />} />
