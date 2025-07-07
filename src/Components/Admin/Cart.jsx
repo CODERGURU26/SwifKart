@@ -143,7 +143,7 @@ const Cart = () => {
         }
 
         const options = {
-            key: "rzp_test_cuYR9RNqmpSXaE", // Test key from Razorpay dashboard
+            key: import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_test_cuYR9RNqmpSXaE", // Use env variable
             amount: res.data.amount,        // Amount in paise
             currency: res.data.currency || "INR",
             name: "SwiftKart",
