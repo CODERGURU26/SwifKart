@@ -185,10 +185,10 @@ const Layout2 = ({ children, update }) => {
                             {
                                 !session &&
                                 <>
-                                    <button className="text-xl bg-blue-600 text-white font-semibold p-2 rounded-[10px] hover:bg-rose-600 text-center">
+                                    <button className="mr-65 mt-2 text-xl  text-white  hover:text-blue-600 ">
                                         <a href="/Login">Login</a></button>
 
-                                    <button className="text-xl bg-red-600 transition duration-150 text-white font-semibold p-2 rounded-[10px] hover:bg-blue-600 text-center">
+                                    <button className="mr-65 mt-2 text-xl text-white  hover:text-blue-600 ">
                                         <a href="/SignUp">SignUp</a></button>
                                 </>
                             }
