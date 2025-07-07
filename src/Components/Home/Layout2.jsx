@@ -94,7 +94,7 @@ const Layout2 = ({ children, update }) => {
                 <div className="flex items-center sticky top-0 left-0 justify-between shadow-lg p-2">
                     <div className="flex items-center gap-4">
                         <img src={img} className="w-[80px]" />
-                        <h1 className="text-2xl text-rose-600 font-bold">SwiftKart</h1>
+                        <Link to='/' className="text-2xl text-rose-600 font-bold">SwiftKart</Link>
                     </div>
 
                     <button className="md:hidden" onClick={() => setOpen(!open)}>

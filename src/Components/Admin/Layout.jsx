@@ -105,9 +105,9 @@ const Layout = ({ children }) => {
                                 className="bg-gray-200 w-8 h-8 hover:bg-rose-400 hover:text-white">
                                 <i className="ri-menu-2-line text-2xl font-semibold"></i>
                             </button>
-                            <h1 className="text-2xl font-bold text-rose-600">
+                            <Link to='/' className="text-2xl font-bold text-rose-600">
                                 SwiftKart
-                            </h1>
+                            </Link>
                         </div>
 
 
