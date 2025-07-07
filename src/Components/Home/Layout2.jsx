@@ -182,8 +182,8 @@ const Layout2 = ({ children, update }) => {
                                     )
                                 })
                             }
-                            <li><a href="" className="hover:text-blue-400">Login</a></li>
-                            <li><a href="" className="hover:text-blue-400" >SignUp</a></li>
+                            <li><a href="/Login" className="hover:text-blue-400">Login</a></li>
+                            <li><a href="/SignUp" className="hover:text-blue-400" >SignUp</a></li>
                         </ul>
 
                     </div>
