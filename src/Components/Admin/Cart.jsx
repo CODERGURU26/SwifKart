@@ -78,186 +78,200 @@ const Cart = () => {
     }
 
     const buyNow = async () => {
-        if (!session) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Please login first',
-                text: 'You need to be logged in to make a purchase.'
-            })
-            return
-        }
+    if (!session) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Please login first',
+            text: 'You need to be logged in to make a purchase.'
+        })
+        return
+    }
 
-        // Validate product data
-        if (!products.length || products.some(p => !p.price || p.price <= 0)) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Invalid Product',
-                text: 'One or more products have invalid prices.'
-            });
-            return;
-        }
+    // Validate product data
+    if (!products.length || products.some(p => !p.price || p.price <= 0)) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Invalid Product',
+            text: 'One or more products have invalid prices.'
+        });
+        return;
+    }
 
-        // Create a copy to avoid mutating the original product
-        const orderProduct = { ...products }
+    const amount = getTotalPrice(products)
 
+    // Validate amount
+    if (amount <= 0) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Invalid Amount',
+            text: 'Order amount must be greater than zero.'
+        })
+        return
+    }
 
-        const amount = getTotalPrice(products)
-
-        // Validate amount
-        if (amount <= 0) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Invalid Amount',
-                text: 'Order amount must be greater than zero.'
-            })
-            return
-        }
-
-        try {
-            // Show loading state
-            Swal.fire({
-                title: 'Processing...',
-                text: 'Creating payment order',
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading()
-                }
-            })
-
-            console.log('Creating order for amount:', amount)
-
-            // First test if server is reachable
-            try {
-                await axios.get('/api/razorpay', { timeout: 5000 });
-            } catch (testErr) {
-                throw new Error('Server is not reachable. Please make sure your backend server is running on port 8080.');
+    try {
+        // Show loading state
+        Swal.fire({
+            title: 'Processing...',
+            text: 'Creating payment order',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading()
             }
+        })
 
-            const res = await axios.post('/api/razorpay', {
-                amount: Math.round(amount * 100) // Convert to paise
-            }, {
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                timeout: 10000 // 10 second timeout
-            });
+        console.log('Creating order for amount:', amount)
 
-            console.log('Order created successfully:', res.data)
-            Swal.close() // Close loading dialog
+        // Use full URL for backend API
+        const API_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080';
+        
+        const res = await axios.post(`${API_URL}/api/razorpay`, {
+            amount: Math.round(amount * 100) // Convert to paise
+        }, {
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            timeout: 10000 // 10 second timeout
+        });
 
-            const options = {
-                key: "rzp_test_cuYR9RNqmpSXaE", // Test key from Razorpay dashboard
-                amount: res.data.amount,        // Amount in paise
-                currency: res.data.currency || "INR",
-                name: "SwiftKart",
-                description: `${products.length}` || 'Product Purchase',
-                order_id: res.data.orderId,     // Must match exactly with order.id from backend
-                handler: async function (response) {
-                    try {
-                        console.log("Payment success", response);
+        console.log('Order created successfully:', res.data)
+        Swal.close() // Close loading dialog
 
-                        // Prepare order data
-                        for (let item of products) {
-                            const orderData = {
-                                ...item,
-                                email: session.email || 'N/A',
-                                customerName: session.displayName || session.email?.split('@')[0] || 'N/A',
-                                address: address || { Mobile: 'N/A' },
-                                date: new Date(), // Use Firebase Timestamp format
-                                orderId: response.razorpay_order_id || 'N/A',
-                                paymentId: response.razorpay_payment_id || 'N/A',
-                                price: amount, // Final calculated price
-                                userId: session.uid,
-                                status: 'pending'
-                            };
-                            await addDoc(collection(db, 'orders'), orderData);
-                        }
+        // Validate response (same as homepage)
+        if (!res.data.success || !res.data.orderId) {
+            throw new Error('Invalid response from payment server');
+        }
 
+        const options = {
+            key: "rzp_test_cuYR9RNqmpSXaE", // Test key from Razorpay dashboard
+            amount: res.data.amount,        // Amount in paise
+            currency: res.data.currency || "INR",
+            name: "SwiftKart",
+            description: `${products.length} items` || 'Product Purchase',
+            order_id: res.data.orderId,     // Must match exactly with order.id from backend
+            handler: async function (response) {
+                try {
+                    console.log("Payment success", response);
 
-                        // Save order to database
-
-
-                        Swal.fire({
-                            icon: "success",
-                            title: "Payment Successful!",
-                            text: `Payment ID: ${response.razorpay_payment_id}`,
-                            timer: 3000,
-                            showConfirmButton: false
-                        });
-
-
-                        navigate('/Profile');
-                    } catch (saveError) {
-                        console.error('Error saving order:', saveError);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Order Save Failed',
-                            text: 'Payment was successful but failed to save order details.'
-                        });
+                    // Prepare order data
+                    for (let item of products) {
+                        const orderData = {
+                            ...item,
+                            email: session.email || 'N/A',
+                            customerName: session.displayName || session.email?.split('@')[0] || 'N/A',
+                            address: address || { Mobile: 'N/A' },
+                            date: new Date(),
+                            orderId: response.razorpay_order_id || 'N/A',
+                            paymentId: response.razorpay_payment_id || 'N/A',
+                            price: amount,
+                            userId: session.uid,
+                            status: 'pending'
+                        };
+                        await addDoc(collection(db, 'orders'), orderData);
                     }
-                },
-                notes: {
-                    name: session.displayName || session.email
-                },
-                prefill: {
-                    email: session?.email || "customer@example.com",
-                    contact: address?.Mobile || session?.phoneNumber || "9999999999"
-                },
-                theme: {
-                    color: "#3399cc"
+
+                    // Clear cart after successful payment
+                    for (let item of products) {
+                        await removeCart(item.cartId);
+                    }
+
+                    Swal.fire({
+                        icon: "success",
+                        title: "Payment Successful!",
+                        text: `Payment ID: ${response.razorpay_payment_id}`,
+                        timer: 3000,
+                        showConfirmButton: false
+                    });
+
+                    navigate('/Profile');
+                } catch (saveError) {
+                    console.error('Error saving order:', saveError);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Order Save Failed',
+                        text: 'Payment was successful but failed to save order details.'
+                    });
                 }
-            };
-
-            console.log('Razorpay options:', options); // Debug log
-
-            // Check if Razorpay is loaded
-            if (!window.Razorpay) {
-                throw new Error('Razorpay SDK not loaded. Please check your internet connection.');
+            },
+            notes: {
+                name: session.displayName || session.email
+            },
+            prefill: {
+                email: session?.email || "customer@example.com",
+                contact: address?.Mobile || session?.phoneNumber || "9999999999"
+            },
+            theme: {
+                color: "#3399cc"
             }
+        };
 
-            const razor = new window.Razorpay(options);
-            razor.open();
+        console.log('Razorpay options:', options);
 
-            razor.on('payment.failed', function (response) {
-                console.error('Payment failed:', response.error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Payment Failed',
-                    text: response.error.description || 'Payment could not be processed.'
-                });
-                navigate('/Failed');
-            });
+        // Check if Razorpay is loaded
+        if (!window.Razorpay) {
+            throw new Error('Razorpay SDK not loaded. Please check your internet connection.');
+        }
 
-        } catch (err) {
-            Swal.close() // Close loading dialog if open
-            console.error('Payment error:', err);
+        const razor = new window.Razorpay(options);
+        razor.open();
 
-            let errorMessage = 'Something went wrong with the payment.'
-            let errorTitle = 'Payment Failed'
-
-            if (err.code === 'ECONNREFUSED' || err.message.includes('Network Error')) {
-                errorTitle = 'Server Connection Failed'
-                errorMessage = 'Unable to connect to payment server. Please check if the server is running.'
-            } else if (err.code === 'ECONNABORTED') {
-                errorTitle = 'Request Timeout'
-                errorMessage = 'The request took too long. Please try again.'
-            } else if (err.response) {
-                errorMessage = err.response.data?.message || `Server error: ${err.response.status}`
-            } else if (err.message) {
-                errorMessage = err.message
-            }
-
+        razor.on('payment.failed', function (response) {
+            console.error('Payment failed:', response.error);
             Swal.fire({
                 icon: 'error',
-                title: errorTitle,
-                text: errorMessage,
-                footer: `<small>Error details: ${err.message}</small>`
+                title: 'Payment Failed',
+                text: response.error.description || 'Payment could not be processed.'
             });
-
             navigate('/Failed');
-        }
-    };
+        });
 
+    } catch (err) {
+        Swal.close() // Close loading dialog if open
+        console.error('Payment error:', err);
+
+        let errorMessage = 'Something went wrong with the payment.'
+        let errorTitle = 'Payment Failed'
+
+        // Better error handling (same as homepage)
+        if (err.response) {
+            const status = err.response.status;
+            const data = err.response.data;
+            
+            console.error('Response error:', {
+                status,
+                data,
+                statusText: err.response.statusText
+            });
+            
+            if (status === 500) {
+                errorTitle = 'Server Error';
+                errorMessage = data?.message || 'Payment server is experiencing issues. Please try again later.';
+            } else if (status === 400) {
+                errorTitle = 'Request Error';
+                errorMessage = data?.message || 'Invalid payment request.';
+            } else if (status === 404) {
+                errorTitle = 'API Not Found';
+                errorMessage = 'Payment API endpoint not found. Please contact support.';
+            } else {
+                errorMessage = data?.message || `Server error (${status})`;
+            }
+        } else if (err.request) {
+            errorTitle = 'Connection Error';
+            errorMessage = 'Unable to connect to payment server. Please check your internet connection.';
+        } else {
+            errorMessage = err.message || 'Unknown error occurred';
+        }
+
+        Swal.fire({
+            icon: 'error',
+            title: errorTitle,
+            text: errorMessage,
+            footer: `<small>Error details: ${err.message}</small>`
+        });
+
+        navigate('/Failed');
+    }
+};
     return (
         <>
             <Layout2 update={updateUI}>
