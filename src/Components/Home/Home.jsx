@@ -283,6 +283,7 @@ const Home = ({ Slider }) => {
                 try {
                     const orderData = {
                         ...orderProduct,
+                        status: 'Processing',
                         email: session.email || 'N/A',
                         customerName: session.displayName || session.email?.split('@')[0] || 'N/A',
                         address: address || { Mobile: 'N/A' },

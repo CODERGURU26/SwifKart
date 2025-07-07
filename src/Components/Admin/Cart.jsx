@@ -150,6 +150,7 @@ const Cart = () => {
                     for (let item of products) {
                         const orderData = {
                             ...item,
+                            status: 'Processing',
                             email: session.email || 'N/A',
                             customerName: session.displayName || session.email?.split('@')[0] || 'N/A',
                             address: address || { Mobile: 'N/A' },
