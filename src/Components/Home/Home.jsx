@@ -14,6 +14,9 @@ import { useNavigate } from "react-router-dom"
 import Swal from "sweetalert2"
 import { onAuthStateChanged, getAuth } from "firebase/auth"
 import axios from 'axios';
+import AOS from 'aos'
+import 'aos/dist/aos.css'
+
 
 const db = getFirestore(firebaseAppConfig)
 const auth = getAuth(firebaseAppConfig)
@@ -26,6 +29,11 @@ const Home = ({ Slider }) => {
     const [productsLoading, setProductsLoading] = useState(true)
     const [address, setAddress] = useState(null)
     const [updateUI, setUpdateUI] = useState(false)
+
+    useEffect(() => {
+        AOS.init({ duration: 800, once: false });
+    }, []);
+
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -125,230 +133,230 @@ const Home = ({ Slider }) => {
         }
     }
 
-  const buyNow = async (product) => {
-    if (!session) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Please login first',
-            text: 'You need to be logged in to make a purchase.'
-        });
-        return;
-    }
-
-    // Validate product data
-    if (!product.price || product.price <= 0) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Invalid Product',
-            text: 'Product price is not valid.'
-        });
-        return;
-    }
-
-    const orderProduct = { ...product };
-    orderProduct.userId = session.uid;
-    orderProduct.status = 'pending';
-
-    const amount = Math.max(0, orderProduct.price - (orderProduct.price * (orderProduct.discount || 0)) / 100);
-
-    if (amount <= 0) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Invalid Amount',
-            text: 'Order amount must be greater than zero.'
-        });
-        return;
-    }
-
-    try {
-        // Check address first
-        const col = collection(db, 'addresses');
-        const q = query(col, where('userId', '==', session.uid));
-        const snapshot = await getDocs(q);
-
-        if (snapshot.empty) {
+    const buyNow = async (product) => {
+        if (!session) {
             Swal.fire({
-                icon: 'info',
-                title: 'Please Update Your Address For Accessing Payment Features!'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    navigate('/Profile');
-                }
+                icon: 'warning',
+                title: 'Please login first',
+                text: 'You need to be logged in to make a purchase.'
             });
             return;
         }
 
-        const address = snapshot.docs[0].data();
+        // Validate product data
+        if (!product.price || product.price <= 0) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Product',
+                text: 'Product price is not valid.'
+            });
+            return;
+        }
 
-        Swal.fire({
-            title: 'Processing...',
-            text: 'Creating payment order',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
+        const orderProduct = { ...product };
+        orderProduct.userId = session.uid;
+        orderProduct.status = 'pending';
 
-        // Debug logging
-        console.log('Creating payment order for amount:', amount);
-        console.log('Request payload:', { amount: Math.round(amount * 100) });
+        const amount = Math.max(0, orderProduct.price - (orderProduct.price * (orderProduct.discount || 0)) / 100);
 
-        // Create Razorpay order with detailed error handling
-        let response;
+        if (amount <= 0) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Amount',
+                text: 'Order amount must be greater than zero.'
+            });
+            return;
+        }
+
         try {
-            response = await axios.post('/api/razorpay', {
-                amount: Math.round(amount * 100) // paise
-            }, {
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                timeout: 15000,
-            });
-        } catch (axiosError) {
-            console.error('Axios error:', axiosError);
-            
-            // Close loading dialog
-            Swal.close();
-            
-            let errorMessage = 'Unable to create payment order';
-            let errorTitle = 'Payment Error';
-            
-            if (axiosError.response) {
-                const status = axiosError.response.status;
-                const data = axiosError.response.data;
-                
-                console.error('Response error:', {
-                    status,
-                    data,
-                    statusText: axiosError.response.statusText
+            // Check address first
+            const col = collection(db, 'addresses');
+            const q = query(col, where('userId', '==', session.uid));
+            const snapshot = await getDocs(q);
+
+            if (snapshot.empty) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Please Update Your Address For Accessing Payment Features!'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        navigate('/Profile');
+                    }
                 });
-                
-                if (status === 500) {
-                    errorTitle = 'Server Error';
-                    errorMessage = data?.message || 'Payment server is experiencing issues. Please try again later.';
-                } else if (status === 400) {
-                    errorTitle = 'Request Error';
-                    errorMessage = data?.message || 'Invalid payment request.';
-                } else if (status === 404) {
-                    errorTitle = 'API Not Found';
-                    errorMessage = 'Payment API endpoint not found. Please contact support.';
+                return;
+            }
+
+            const address = snapshot.docs[0].data();
+
+            Swal.fire({
+                title: 'Processing...',
+                text: 'Creating payment order',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            // Debug logging
+            console.log('Creating payment order for amount:', amount);
+            console.log('Request payload:', { amount: Math.round(amount * 100) });
+
+            // Create Razorpay order with detailed error handling
+            let response;
+            try {
+                response = await axios.post('/api/razorpay', {
+                    amount: Math.round(amount * 100) // paise
+                }, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    timeout: 15000,
+                });
+            } catch (axiosError) {
+                console.error('Axios error:', axiosError);
+
+                // Close loading dialog
+                Swal.close();
+
+                let errorMessage = 'Unable to create payment order';
+                let errorTitle = 'Payment Error';
+
+                if (axiosError.response) {
+                    const status = axiosError.response.status;
+                    const data = axiosError.response.data;
+
+                    console.error('Response error:', {
+                        status,
+                        data,
+                        statusText: axiosError.response.statusText
+                    });
+
+                    if (status === 500) {
+                        errorTitle = 'Server Error';
+                        errorMessage = data?.message || 'Payment server is experiencing issues. Please try again later.';
+                    } else if (status === 400) {
+                        errorTitle = 'Request Error';
+                        errorMessage = data?.message || 'Invalid payment request.';
+                    } else if (status === 404) {
+                        errorTitle = 'API Not Found';
+                        errorMessage = 'Payment API endpoint not found. Please contact support.';
+                    } else {
+                        errorMessage = data?.message || `Server error (${status})`;
+                    }
+                } else if (axiosError.request) {
+                    errorTitle = 'Connection Error';
+                    errorMessage = 'Unable to connect to payment server. Please check your internet connection.';
                 } else {
-                    errorMessage = data?.message || `Server error (${status})`;
+                    errorMessage = axiosError.message || 'Unknown error occurred';
                 }
-            } else if (axiosError.request) {
-                errorTitle = 'Connection Error';
-                errorMessage = 'Unable to connect to payment server. Please check your internet connection.';
-            } else {
-                errorMessage = axiosError.message || 'Unknown error occurred';
+
+                Swal.fire({
+                    icon: 'error',
+                    title: errorTitle,
+                    text: errorMessage,
+                    footer: '<small>If this problem persists, please contact support.</small>'
+                });
+
+                return;
             }
-            
+
+            Swal.close();
+
+            console.log('Payment order created successfully:', response.data);
+
+            // Validate response
+            if (!response.data.success || !response.data.orderId) {
+                throw new Error('Invalid response from payment server');
+            }
+
+            // Load Razorpay SDK if not loaded
+            if (!window.Razorpay) {
+                await new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+                    script.onload = resolve;
+                    script.onerror = () => reject(new Error('Failed to load Razorpay SDK'));
+                    document.body.appendChild(script);
+                });
+            }
+
+            const options = {
+                key: "rzp_test_cuYR9RNqmpSXaE",
+                amount: response.data.amount,
+                currency: response.data.currency || "INR",
+                name: "SwiftKart",
+                description: orderProduct.title || "Product Purchase",
+                order_id: response.data.orderId,
+                handler: async function (response) {
+                    try {
+                        const orderData = {
+                            ...orderProduct,
+                            status: 'Processing',
+                            email: session.email || 'N/A',
+                            customerName: session.displayName || session.email?.split('@')[0] || 'N/A',
+                            address: address || { Mobile: 'N/A' },
+                            date: new Date(),
+                            orderId: response.razorpay_order_id || 'N/A',
+                            paymentId: response.razorpay_payment_id || 'N/A',
+                            price: amount
+                        };
+
+                        await addDoc(collection(db, 'orders'), orderData);
+
+                        Swal.fire({
+                            icon: "success",
+                            title: "Payment Successful!",
+                            text: `Payment ID: ${response.razorpay_payment_id}`,
+                            timer: 3000,
+                            showConfirmButton: false
+                        });
+
+                        navigate('/Profile');
+                    } catch (saveError) {
+                        console.error('Error saving order:', saveError);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Order Save Failed',
+                            text: 'Payment was successful but failed to save order details.'
+                        });
+                    }
+                },
+                notes: {
+                    name: session.displayName || session.email
+                },
+                prefill: {
+                    email: session?.email || "customer@example.com",
+                    contact: address?.Mobile || session?.phoneNumber || "9999999999"
+                },
+                theme: {
+                    color: "#3399cc"
+                }
+            };
+
+            const razor = new window.Razorpay(options);
+            razor.open();
+
+            razor.on('payment.failed', function (response) {
+                console.error('Payment failed:', response.error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Payment Failed',
+                    text: response.error.description || 'Payment could not be processed.'
+                });
+            });
+
+        } catch (err) {
+            Swal.close();
+            console.error('Unexpected payment error:', err);
+
             Swal.fire({
                 icon: 'error',
-                title: errorTitle,
-                text: errorMessage,
-                footer: '<small>If this problem persists, please contact support.</small>'
-            });
-            
-            return;
-        }
-
-        Swal.close();
-
-        console.log('Payment order created successfully:', response.data);
-
-        // Validate response
-        if (!response.data.success || !response.data.orderId) {
-            throw new Error('Invalid response from payment server');
-        }
-
-        // Load Razorpay SDK if not loaded
-        if (!window.Razorpay) {
-            await new Promise((resolve, reject) => {
-                const script = document.createElement('script');
-                script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-                script.onload = resolve;
-                script.onerror = () => reject(new Error('Failed to load Razorpay SDK'));
-                document.body.appendChild(script);
+                title: 'Payment Error',
+                text: err.message || 'An unexpected error occurred during payment processing.',
+                footer: '<small>Please try again or contact support if the problem persists.</small>'
             });
         }
-
-        const options = {
-            key: "rzp_test_cuYR9RNqmpSXaE",
-            amount: response.data.amount,
-            currency: response.data.currency || "INR",
-            name: "SwiftKart",
-            description: orderProduct.title || "Product Purchase",
-            order_id: response.data.orderId,
-            handler: async function (response) {
-                try {
-                    const orderData = {
-                        ...orderProduct,
-                        status: 'Processing',
-                        email: session.email || 'N/A',
-                        customerName: session.displayName || session.email?.split('@')[0] || 'N/A',
-                        address: address || { Mobile: 'N/A' },
-                        date: new Date(),
-                        orderId: response.razorpay_order_id || 'N/A',
-                        paymentId: response.razorpay_payment_id || 'N/A',
-                        price: amount
-                    };
-
-                    await addDoc(collection(db, 'orders'), orderData);
-
-                    Swal.fire({
-                        icon: "success",
-                        title: "Payment Successful!",
-                        text: `Payment ID: ${response.razorpay_payment_id}`,
-                        timer: 3000,
-                        showConfirmButton: false
-                    });
-
-                    navigate('/Profile');
-                } catch (saveError) {
-                    console.error('Error saving order:', saveError);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Order Save Failed',
-                        text: 'Payment was successful but failed to save order details.'
-                    });
-                }
-            },
-            notes: {
-                name: session.displayName || session.email
-            },
-            prefill: {
-                email: session?.email || "customer@example.com",
-                contact: address?.Mobile || session?.phoneNumber || "9999999999"
-            },
-            theme: {
-                color: "#3399cc"
-            }
-        };
-
-        const razor = new window.Razorpay(options);
-        razor.open();
-
-        razor.on('payment.failed', function (response) {
-            console.error('Payment failed:', response.error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Payment Failed',
-                text: response.error.description || 'Payment could not be processed.'
-            });
-        });
-
-    } catch (err) {
-        Swal.close();
-        console.error('Unexpected payment error:', err);
-
-        Swal.fire({
-            icon: 'error',
-            title: 'Payment Error',
-            text: err.message || 'An unexpected error occurred during payment processing.',
-            footer: '<small>Please try again or contact support if the problem persists.</small>'
-        });
-    }
-};
+    };
 
     const calculateDiscountedPrice = (price, discount = 0) => {
         if (!price || price < 0) return 0;
@@ -418,32 +426,34 @@ const Home = ({ Slider }) => {
                                 No products available at the moment.
                             </div>
                         ) : (
-                            <div className="p-6 w-11/12 mx-auto grid md:grid-cols-4 gap-4">
+                            <div className="p-6 w-11/12 mx-auto grid md:grid-cols-4 sm:grid-cols-2 grid-cols-1 gap-6">
                                 {products.map((item, index) => {
                                     const discountedPrice = calculateDiscountedPrice(item.price, item.discount)
 
                                     return (
-                                        <div key={item.id || index} className="rounded-[10px] p-2 bg-white shadow-lg flex flex-col items-center">
+                                        <div
+                                            key={item.id || index}
+                                            className="rounded-[10px] p-4 bg-white shadow-lg flex flex-col items-center transition-transform hover:scale-[1.02]"
+                                            data-aos="zoom-in"
+                                        >
                                             <img
                                                 src={item.image}
-                                                className="h-80 object-cover rounded-[10px]"
+                                                className="h-80 object-cover rounded-[10px] w-full"
                                                 alt={item.title || 'Product image'}
                                                 onError={(e) => {
-                                                    e.target.src = '/placeholder-image.jpg'; // Add fallback image
+                                                    e.target.src = '/placeholder-image.jpg'
                                                 }}
                                             />
-                                            <h1 className="text-xl font-semibold mt-2">{item.title || 'Untitled Product'}</h1>
-                                            <p className="text-gray-600 text-center px-2">
-                                                {item.description ?
-                                                    (item.description.length > 45 ?
-                                                        `${item.description.slice(0, 45)}...` :
-                                                        item.description
-                                                    ) :
-                                                    'No description available'
-                                                }
+                                            <h1 className="text-lg sm:text-xl font-semibold mt-2 text-center">{item.title}</h1>
+                                            <p className="text-gray-600 text-center px-2 text-sm sm:text-base">
+                                                {item.description
+                                                    ? item.description.length > 45
+                                                        ? `${item.description.slice(0, 45)}...`
+                                                        : item.description
+                                                    : 'No description available'}
                                             </p>
-                                            <div className="flex gap-4 mt-2">
-                                                <p className="font-bold">₹{discountedPrice.toFixed(2)}</p>
+                                            <div className="flex gap-2 sm:gap-4 mt-2 text-sm sm:text-base">
+                                                <p className="font-bold text-black">₹{discountedPrice.toFixed(2)}</p>
                                                 {item.discount > 0 && (
                                                     <>
                                                         <del className="text-gray-400">₹{item.price}</del>
@@ -452,14 +462,14 @@ const Home = ({ Slider }) => {
                                                 )}
                                             </div>
                                             <button
-                                                className="bg-blue-400 hover:bg-blue-500 text-white w-full p-2 font-semibold rounded-[10px] mt-3 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                className="bg-blue-400 hover:bg-blue-500 text-white w-full p-2 font-semibold rounded-[10px] mt-3"
                                                 onClick={() => buyNow(item)}
                                                 disabled={!item.price || item.price <= 0}
                                             >
                                                 Buy Now
                                             </button>
                                             <button
-                                                className="bg-red-400 hover:bg-red-500 mt-2 text-white w-full p-2 font-semibold rounded-[10px] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                className="bg-red-400 hover:bg-red-500 mt-2 text-white w-full p-2 font-semibold rounded-[10px]"
                                                 onClick={() => addToCart(item)}
                                                 disabled={!item.price || item.price <= 0}
                                             >
@@ -470,6 +480,7 @@ const Home = ({ Slider }) => {
                                     )
                                 })}
                             </div>
+
                         )}
                     </div>
                 </div>

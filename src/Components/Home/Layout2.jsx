@@ -167,80 +167,77 @@ const Layout2 = ({ children, update }) => {
             <div>
                 {children}
             </div>
-            <footer className="bg-rose-600 ">
-                <div className="grid md:grid-cols-4 md:gap-0 gap-8 mx-auto w-10/12 py-10 ">
-
-                    <div>
-                        <h1 className="text-2xl font-semibold text-white">Usefull Links</h1>
-                        <ul className="mt-8 text-xl font-lg text-white flex flex-col gap-4 ">
-                            {
-                                menu.map((item, index) => {
-                                    return (
-                                        <li key={index}>
-                                            <a href={item.link} className="hover:text-blue-400">{item.label}</a>
-                                        </li>
-                                    )
-                                })
-                            }
-                            {
-                                !session &&
+            <footer className="bg-rose-600 text-white">
+                <div className="w-11/12 mx-auto py-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 text-center sm:text-left">
+                    {/* Useful Links */}
+                    <div className="flex flex-col items-center sm:items-start">
+                        <h1 className="text-2xl font-semibold">Useful Links</h1>
+                        <ul className="mt-6 space-y-3">
+                            {menu.map((item, index) => (
+                                <li key={index}>
+                                    <Link to={item.link} className="hover:text-blue-300">{item.label}</Link>
+                                </li>
+                            ))}
+                            {!session && (
                                 <>
-                                    <button className="mr-65 mt-2 text-xl  text-white  hover:text-blue-600 ">
-                                        <a href="/Login">Login</a></button>
-
-                                    <button className="mr-65 mt-2 text-xl text-white  hover:text-blue-600 ">
-                                        <a href="/SignUp">SignUp</a></button>
+                                    <li>
+                                        <Link to="/Login" className="hover:text-blue-300">Login</Link>
+                                    </li>
+                                    <li>
+                                        <Link to="/SignUp" className="hover:text-blue-300">SignUp</Link>
+                                    </li>
                                 </>
-                            }
+                            )}
                         </ul>
-
                     </div>
-                    <div>
-                        <h1 className="text-2xl font-semibold text-white">Follow Us</h1>
-                        <ul className="mt-8 text-xl font-lg text-white flex flex-col gap-4 ">
-                            <li><a href="/" className="hover:text-blue-400">Facebook</a></li>
-                            <li><a href="/" className="hover:text-blue-400">Twitter</a></li>
-                            <li><a href="/" className="hover:text-blue-400" >Instagram</a></li>
-                            <li><a href="/" className="hover:text-blue-400" >LinkedIn</a></li>
-                            <li><a href="/" className="hover:text-blue-400" >Youtube</a></li>
 
+                    {/* Follow Us */}
+                    <div className="flex flex-col items-center sm:items-start">
+                        <h1 className="text-2xl font-semibold">Follow Us</h1>
+                        <ul className="mt-6 space-y-3">
+                            {["Facebook", "Twitter", "Instagram", "LinkedIn", "YouTube"].map((platform, idx) => (
+                                <li key={idx}>
+                                    <a href="/" className="hover:text-blue-300">{platform}</a>
+                                </li>
+                            ))}
                         </ul>
-
                     </div>
-                    <div>
-                        <h1 className="text-2xl font-semibold text-white">Contact-Us</h1>
-                        <form className="mt-4 flex flex-col gap-8 mr-24">
+
+                    {/* Contact Us */}
+                    <div className="flex flex-col items-center sm:items-start">
+                        <h1 className="text-2xl font-semibold">Contact Us</h1>
+                        <form onSubmit={(e) => e.preventDefault()} className="mt-6 flex flex-col space-y-4 w-full sm:w-auto">
                             <input
                                 name="fullname"
-                                className="bg-white p-2 w-full"
+                                className="bg-white text-black p-2 rounded w-full sm:w-auto"
                                 placeholder="Your Name"
                             />
-                            <input name="email"
-                                className="bg-white p-2 w-full"
+                            <input
+                                name="email"
+                                className="bg-white text-black p-2 rounded w-full sm:w-auto"
                                 placeholder="example@gmail.com"
                             />
                             <textarea
-                                className="bg-white p-2 w-full"
-                                placeholder="Write Your Query Here.."
-                            ></textarea>
-                            <button className="bg-blue-400  text-white font-semibold p-2 text-lg">
+                                className="bg-white text-black p-2 rounded w-full sm:w-auto"
+                                placeholder="Write your query here..."
+                            />
+                            <button type="submit" className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded">
                                 Submit
                             </button>
                         </form>
-
                     </div>
-                    <div>
-                        <h1 className="text-2xl font-semibold text-white">Brand Details</h1>
-                        <h1 className="text-xl font-semibold text-white">"Shop Swift, Shop Smart"</h1>
-                        <p className="text-gray-100 mt-4">SwiftKart is a fast, reliable, and user-friendly e-commerce platform designed to offer a seamless shopping experience.
-                            It provides a wide range of products, including electronics, fashion, home essentials, and more.
-                            With a focus on quick delivery and excellent customer service,
-                            SwiftKart aims to become the preferred choice for online shoppers.</p>
-                        <img src={img} className="w-28 mt-8" />
 
+                    {/* Brand Info */}
+                    <div className="flex flex-col items-center sm:items-start">
+                        <h1 className="text-2xl font-semibold">Brand Details</h1>
+                        <p className="mt-4 text-sm leading-relaxed max-w-xs">
+                            "Shop Swift, Shop Smart" — SwiftKart is a fast, reliable, and user-friendly e-commerce platform designed to offer a seamless shopping experience.
+                        </p>
+                        <img src={img} alt="SwiftKart Logo" className="w-24 mt-6" />
                     </div>
                 </div>
             </footer>
+
 
 
             <aside
