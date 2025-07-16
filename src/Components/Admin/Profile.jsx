@@ -4,6 +4,8 @@ import img from './avtar/avtar.svg'
 import img2 from './Loader/a.webp'
 import firebaseAppConfig from "../../../util/firebase-config"
 import { onAuthStateChanged, getAuth, updateProfile } from "firebase/auth"
+import { EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
+import { updatePassword } from "firebase/auth"
 import { useNavigate } from "react-router-dom"
 import Swal from "sweetalert2"
 import { getFirestore, collection, addDoc, getDocs, query, where, doc, updateDoc } from "firebase/firestore"
@@ -29,12 +31,14 @@ const Profile = () => {
         Country: '',
         Pincode: '',
         userId: '',
-        Mobile : ''
+        Mobile: ''
     })
 
     const [isAddress, setIsAddress] = useState(false)
     const [DocId, setDocId] = useState(null)
     const [Isupdated, SetIsUpdated] = useState(false)
+    const [newPassword, setNewPassword] = useState('')
+    const [currentPassword, setCurrentPassword] = useState("")
     useEffect(() => {
         onAuthStateChanged(auth, (user) => {
             if (user) {
@@ -223,6 +227,45 @@ const Profile = () => {
             return 'bg-red-600 text-white'
         }
     }
+
+
+    const handleChangePassword = async (e) => {
+        e.preventDefault();
+
+        if (!newPassword || newPassword.length < 6) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Password must be at least 6 characters'
+            });
+            return;
+        }
+
+        try {
+            const user = auth.currentUser;
+
+            // Re-authenticate the user first
+            const credential = EmailAuthProvider.credential(user.email, currentPassword);
+            await reauthenticateWithCredential(user, credential);
+
+            // Then update password
+            await updatePassword(user, newPassword);
+            Swal.fire({
+                icon: 'success',
+                title: 'Password updated successfully'
+            });
+
+            // Clear inputs
+            setCurrentPassword("")
+            setNewPassword("")
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error updating password',
+                text: error.message
+            });
+        }
+    };
+
     return (
         <>
             <Layout2>
@@ -386,7 +429,7 @@ const Profile = () => {
                                     value={addressFormValue.Mobile}
                                 />
                             </div>
-                            <br/>
+                            <br />
                             {
                                 isAddress ?
                                     <button className="hover:bg-green-400 w-fit rounded-[10px] bg-blue-600 text-white font-bold p-2">
@@ -404,6 +447,46 @@ const Profile = () => {
                         </form>
                     </div>
 
+
+
+                </div>
+
+                <div className="p-8 my-8 md:w-7/12 mx-auto bg-white shadow-lg">
+                    <div className="flex items-center gap-2">
+                        <i className="ri-lock-password-fill text-2xl"></i>
+                        <h1 className="font-bold text-2xl">Update Password</h1>
+                    </div>
+                    <hr className="my-6" />
+
+                    <form className="flex flex-col gap-4" onSubmit={handleChangePassword}>
+                        <label className="font-bold text-xl">Current Password</label>
+                        <input
+                            type="password"
+                            className="p-2 border border-gray-400"
+                            placeholder="Enter current password"
+                            value={currentPassword}
+                            onChange={(e) => setCurrentPassword(e.target.value)}
+                            required
+                        />
+
+                        <label className="font-bold text-xl">New Password</label>
+                        <input
+                            type="password"
+                            className="p-2 border border-gray-400"
+                            placeholder="Enter new password"
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            required
+                        />
+
+                        <button
+                            type="submit"
+                            className="bg-blue-600 hover:bg-green-600 text-white font-semibold p-2 rounded"
+                        >
+                            <i className="ri-key-line mr-2"></i>
+                            Update Password
+                        </button>
+                    </form>
                 </div>
             </Layout2>
 
