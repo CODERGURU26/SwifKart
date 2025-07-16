@@ -3,6 +3,8 @@ import Layout from "./Layout";
 import Swal from "sweetalert2";
 import firebaseAppConfig from "../../../util/firebase-config";
 import { getFirestore, addDoc, collection, getDocs, doc, deleteDoc, updateDoc } from "firebase/firestore";
+import AOS from 'aos';
+import 'aos/dist/aos.css';
 
 const db = getFirestore(firebaseAppConfig);
 
@@ -15,6 +17,15 @@ const Products = () => {
         image: ''
     };
 
+    useEffect(() => {
+        AOS.init({
+            duration: 800,       // Animation duration (in ms)
+            once: true,          // Only animate once on scroll
+            easing: 'ease-in-out',
+        });
+    }, []);
+
+
     const [product, setProduct] = useState([]);
     const [productForm, setProductForm] = useState(model);
     const [productModel, setProductModel] = useState(false);
@@ -24,16 +35,15 @@ const Products = () => {
 
     const modelContainer = useRef(null);
 
-    // Fetch products
     const fetchProducts = async () => {
         try {
             setLoading(true);
             const snapshot = await getDocs(collection(db, 'products'));
             const tmp = [];
             snapshot.forEach((doc) => {
-                tmp.push({ 
-                    id: doc.id, 
-                    ...doc.data() 
+                tmp.push({
+                    id: doc.id,
+                    ...doc.data()
                 });
             });
             setProduct(tmp);
@@ -66,7 +76,6 @@ const Products = () => {
         try {
             let imageUrl = editingProduct?.image || '';
 
-            // Only upload new image if a file is selected
             if (imageFile) {
                 const formData = new FormData();
                 formData.append("file", imageFile);
@@ -93,31 +102,13 @@ const Products = () => {
             };
 
             if (editingProduct) {
-                // Update existing product
                 const docRef = doc(db, "products", editingProduct.id);
                 await updateDoc(docRef, productToSave);
-
-                // Live edit - update specific product in local state
-                setProduct(prevProducts => 
-                    prevProducts.map(item => 
-                        item.id === editingProduct.id 
-                            ? { ...item, ...productToSave } 
-                            : item
-                    )
-                );
-
+                setProduct(prev => prev.map(p => p.id === editingProduct.id ? { ...p, ...productToSave } : p));
                 Swal.fire('Success!', 'Product updated successfully.', 'success');
             } else {
-                // Add new product
                 const docRef = await addDoc(collection(db, "products"), productToSave);
-                
-                // Add to local state immediately (live update)
-                const newProduct = {
-                    id: docRef.id,
-                    ...productToSave
-                };
-                setProduct(prevProducts => [...prevProducts, newProduct]);
-
+                setProduct(prev => [...prev, { id: docRef.id, ...productToSave }]);
                 Swal.fire('Success!', 'Product added successfully.', 'success');
             }
 
@@ -131,10 +122,8 @@ const Products = () => {
         }
     };
 
-    // Live delete function
     const deleteProduct = async (id) => {
         try {
-            // Show confirmation dialog
             const result = await Swal.fire({
                 title: 'Are you sure?',
                 text: "You won't be able to revert this!",
@@ -146,34 +135,19 @@ const Products = () => {
             });
 
             if (result.isConfirmed) {
-                // Delete from Firestore
                 const ref = doc(db, 'products', id);
                 await deleteDoc(ref);
-
-                // Remove from local state immediately (live delete)
-                setProduct(prevProducts => prevProducts.filter(item => item.id !== id));
-
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Deleted!',
-                    text: 'Product has been deleted.',
-                    timer: 2000,
-                    showConfirmButton: false
-                });
+                setProduct(prev => prev.filter(p => p.id !== id));
+                Swal.fire('Deleted!', 'Product has been deleted.', 'success');
             }
         } catch (err) {
             console.error('Delete error:', err);
-            Swal.fire({
-                icon: 'error',
-                title: 'Error!',
-                text: 'Failed to delete this product!'
-            });
+            Swal.fire('Error!', 'Failed to delete this product!', 'error');
         }
     };
 
-    // Edit product function
     const editProduct = (id) => {
-        const productToEdit = product.find(item => item.id === id);
+        const productToEdit = product.find(p => p.id === id);
         if (productToEdit) {
             setEditingProduct(productToEdit);
             setProductForm({
@@ -189,13 +163,13 @@ const Products = () => {
 
     return (
         <Layout>
-            <div>
-                <div className="flex justify-between items-center">
-                    <h1 className="text-2xl font-semibold text-blue-600">
+            <div className="px-2 sm:px-4 md:px-8">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <h1 className="text-xl sm:text-2xl font-semibold text-blue-600">
                         Products ({product.length})
                     </h1>
-                    <button 
-                        className="bg-indigo-600 text-white p-4 rounded hover:bg-indigo-700 transition-colors" 
+                    <button
+                        className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 text-sm sm:text-base transition-colors"
                         onClick={() => setProductModel(true)}
                     >
                         <i className="ri-sticky-note-add-line"></i> New Product
@@ -207,31 +181,35 @@ const Products = () => {
                         <div className="text-lg">Loading products...</div>
                     </div>
                 ) : (
-                    <div className="grid md:grid-cols-4 gap-8 mt-8">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-8">
                         {product.length === 0 ? (
-                            <div className="col-span-4 text-center text-gray-500 py-8">
+                            <div className="col-span-full text-center text-gray-500 py-8">
                                 No products found. Add your first product!
                             </div>
                         ) : (
-                            product.map((item, index) => (
-                                <div key={item.id} className="bg-white rounded-[10px] p-2 shadow-lg hover:shadow-xl transition-shadow">
-                                    <img 
-                                        src={item.image} 
+                            product.map(item => (
+                                <div key={item.id}
+                                    data-aos="zoom-in"
+                                    className="bg-white rounded-[10px] p-2 shadow-lg hover:shadow-xl transition-shadow"
+                                >
+                                    <img
+                                        src={item.image}
                                         alt={item.title}
-                                        className="w-full h-64 object-cover rounded-[10px]" 
+                                        className="w-full h-48 sm:h-56 md:h-64 object-cover rounded-[10px] transform transition-transform duration-300 hover:scale-105"
+
                                     />
                                     <div className="p-2">
                                         <div className="flex items-center justify-between mb-2">
                                             <h3 className="font-semibold truncate">{item.title}</h3>
                                             <div className="flex gap-1">
-                                                <button 
+                                                <button
                                                     onClick={() => editProduct(item.id)}
                                                     className="hover:scale-110 transition-transform"
                                                     title="Edit Product"
                                                 >
                                                     <i className="ri-edit-box-line bg-blue-600 text-white rounded-[10px] p-2"></i>
                                                 </button>
-                                                <button 
+                                                <button
                                                     onClick={() => deleteProduct(item.id)}
                                                     className="hover:scale-110 transition-transform"
                                                     title="Delete Product"
@@ -256,20 +234,20 @@ const Products = () => {
                 )}
 
                 {productModel && (
-                    <div ref={modelContainer} className="animate__animated animate__fadeIn bg-black bg-opacity-40 fixed top-0 left-0 w-full h-full flex justify-center items-center z-50">
-                        <div className="animate__animated animate__pulse bg-white w-6/12 py-4 px-6 rounded-md relative max-h-[90vh] overflow-y-auto">
+                    <div ref={modelContainer} className="animate__animated animate__fadeIn bg-black bg-opacity-40 fixed top-0 left-0 w-full h-full flex justify-center items-center z-50 px-2">
+                        <div className="animate__animated animate__pulse bg-white w-[95%] sm:w-10/12 md:w-8/12 lg:w-6/12 py-4 px-4 sm:px-6 rounded-md relative max-h-[90vh] overflow-y-auto">
                             <button className="absolute top-2 right-1" onClick={handleCloseModel}>
                                 <i className="ri-close-circle-line text-xl font-bold bg-red-600 p-2 text-white rounded-full hover:bg-red-700"></i>
                             </button>
                             <h1 className="font-bold text-lg mb-2">
                                 {editingProduct ? 'Edit Product' : 'Add A Product'}
                             </h1>
-                            <form className="grid grid-cols-2 gap-6 mt-3" onSubmit={handleSubmit}>
+                            <form className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3" onSubmit={handleSubmit}>
                                 <input
                                     required
                                     name='title'
                                     placeholder="Enter Product Title..."
-                                    className="p-2 border border-gray-300 rounded-md col-span-2 focus:outline-none focus:border-indigo-500"
+                                    className="p-2 border border-gray-300 rounded-md col-span-full focus:outline-none focus:border-indigo-500"
                                     type="text"
                                     onChange={handleProductForm}
                                     value={productForm.title}
@@ -300,7 +278,7 @@ const Products = () => {
                                     required
                                     name="description"
                                     placeholder="Description"
-                                    className="p-2 border border-gray-300 rounded-md col-span-2 focus:outline-none focus:border-indigo-500"
+                                    className="p-2 border border-gray-300 rounded-md col-span-full focus:outline-none focus:border-indigo-500"
                                     rows={4}
                                     onChange={handleProductForm}
                                     value={productForm.description}
@@ -310,15 +288,15 @@ const Products = () => {
                                     type="file"
                                     accept="image/*"
                                     onChange={(e) => setImageFile(e.target.files[0])}
-                                    className="col-span-2 border p-2 rounded focus:outline-none focus:border-indigo-500"
+                                    className="col-span-full border p-2 rounded focus:outline-none focus:border-indigo-500"
                                 />
-                                
-                                {editingProduct && editingProduct.image && (
-                                    <div className="col-span-2">
+
+                                {editingProduct?.image && (
+                                    <div className="col-span-full">
                                         <p className="text-sm text-gray-600 mb-2">Current Image:</p>
-                                        <img 
-                                            src={editingProduct.image} 
-                                            alt="Current product" 
+                                        <img
+                                            src={editingProduct.image}
+                                            alt="Current product"
                                             className="w-20 h-20 object-cover rounded border"
                                         />
                                         <p className="text-xs text-gray-500 mt-1">
@@ -327,8 +305,8 @@ const Products = () => {
                                     </div>
                                 )}
 
-                                <div className="col-span-2">
-                                    <button 
+                                <div className="col-span-full">
+                                    <button
                                         type="submit"
                                         className="bg-indigo-600 px-6 py-2 text-white rounded-md hover:bg-indigo-700 transition-colors"
                                     >

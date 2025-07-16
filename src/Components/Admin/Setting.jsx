@@ -12,6 +12,7 @@ import { getFirestore, collection, addDoc, getDocs, query, where, doc, updateDoc
 
 const auth = getAuth(firebaseAppConfig)
 const db = getFirestore(firebaseAppConfig)
+
 const Setting = () => {
     const navigate = useNavigate()
     const [orders, setOrders] = useState([])
@@ -25,8 +26,8 @@ const Setting = () => {
         Fullname: '',
         Email: '',
         Mobile: ''
-    }
-    )
+    })
+    
     const [addressFormValue, setAddressFormValue] = useState({
         Address: '',
         City: '',
@@ -40,6 +41,7 @@ const Setting = () => {
     const [isAddress, setIsAddress] = useState(false)
     const [DocId, setDocId] = useState(null)
     const [Isupdated, SetIsUpdated] = useState(false)
+
     useEffect(() => {
         onAuthStateChanged(auth, (user) => {
             if (user) {
@@ -61,8 +63,6 @@ const Setting = () => {
                     Mobile: (session.phoneNumber ? session.phoneNumber : '')
                 })
 
-
-
                 //Fetch Address
                 const col = collection(db, 'addresses')
                 const q = query(col, where("userId", "==", session.uid))
@@ -77,11 +77,9 @@ const Setting = () => {
                     })
                 })
             }
-
         }
         req()
-    }
-        , [session, Isupdated])
+    }, [session, Isupdated])
 
     useEffect(() => {
         const req = async () => {
@@ -101,7 +99,9 @@ const Setting = () => {
 
     if (session === null) {
         return (
-            <h1 className="text-center mt-100 font-bold text-3xl">Loading...</h1>
+            <div className="flex items-center justify-center min-h-screen">
+                <h1 className="text-center font-bold text-2xl md:text-3xl">Loading...</h1>
+            </div>
         )
     }
 
@@ -114,7 +114,6 @@ const Setting = () => {
             ...formValue,
             [name]: value
         })
-
     }
 
     const handleAddressFormValue = (e) => {
@@ -155,6 +154,7 @@ const Setting = () => {
             setLoading(false)
         }
     }
+
     const handleSubmit = async (e) => {
         e.preventDefault()
         await updateProfile(auth.currentUser, {
@@ -170,7 +170,6 @@ const Setting = () => {
     const saveAddress = async (e) => {
         e.preventDefault()
         try {
-
             await addDoc(collection(db, "addresses"), {
                 ...addressFormValue,
                 userId: session.uid
@@ -192,7 +191,6 @@ const Setting = () => {
     }
 
     const updateAddress = async (e) => {
-
         try {
             e.preventDefault()
             const ref = doc(db, "addresses", DocId)
@@ -211,23 +209,6 @@ const Setting = () => {
         }
     }
 
-    const getStatusColor = (status) => {
-        if (status === 'Pending') {
-            return 'bg-yellow-600 text-white'
-        }
-        else if (status === 'Processing') {
-            return 'bg-blue-600 text-white'
-        }
-        else if (status === 'Dispatched') {
-            return 'bg-indigo-600 text-white'
-        }
-        else if (status === 'Delivered') {
-            return 'bg-green-600 text-white'
-        }
-        else if (status === 'Returned') {
-            return 'bg-red-600 text-white'
-        }
-    }
 
     const handleChangePassword = async (e) => {
         e.preventDefault();
@@ -266,200 +247,224 @@ const Setting = () => {
         }
     };
 
-
     return (
-        <>
-            <Layout>
-                
-                <div className="p-8 my-8 md:w-7/12 mx-auto bg-white shadow-lg ">
-                    <div className="flex items-center gap-2">
-                        <i className="ri-user-smile-fill text-2xl"></i>
-                        <h1 className="font-bold text-2xl">My Profile</h1>
-                    </div>
-                    <hr className="my-6" />
-                    <div className=" w-fit mx-auto relative">
-                        {
-                            loading ?
-                                <img src={img2} className="w-[100px] mb-8 rounded-full" />
-                                :
-                                <img src={image} className="w-[100px] mb-8 rounded-full" />
-                        }
-
-                        <input
-                            type="file"
-                            accept="image/*"
-                            className="opacity-0 absolute top-0 left-0 w-full h-full"
-                            onChange={onProfileChange}
-                        />
-                    </div>
-                    <div>
-                        <form className="grid grid-cols-2 gap-6" onSubmit={handleSubmit}>
-                            <div className="flex flex-col gap-2">
-                                <label className="font-bold text-xl">Fullname</label>
-                                <input
-                                    onChange={handleForm}
-                                    name="Fullname"
-                                    type="text"
-                                    className="p-2 border border-gray-400"
-                                    value={formValue.Fullname}
+        <Layout>
+            <div className="min-h-screen py-4 px-4 sm:px-6 lg:px-8">
+                <div className="max-w-4xl mx-auto space-y-6">
+                    
+                    {/* Profile Section */}
+                    <div className="bg-white shadow-lg rounded-lg p-4 sm:p-6 lg:p-8">
+                        <div className="flex items-center gap-2 mb-6">
+                            <i className="ri-user-smile-fill text-xl sm:text-2xl"></i>
+                            <h1 className="font-bold text-xl sm:text-2xl">My Profile</h1>
+                        </div>
+                        <hr className="my-4 sm:my-6" />
+                        
+                        {/* Profile Image */}
+                        <div className="w-fit mx-auto relative mb-6">
+                            {loading ? (
+                                <img 
+                                    src={img2} 
+                                    className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-full object-cover" 
+                                    alt="Loading"
                                 />
-                            </div>
-                            <div className="flex flex-col gap-2">
-                                <label className="font-bold text-xl">Email</label>
-                                <input
-                                    readOnly
-                                    onChange={handleForm}
-                                    name="Email"
-                                    type="text"
-                                    className="p-2 border border-gray-400"
-                                    value={session.email}
+                            ) : (
+                                <img 
+                                    src={image} 
+                                    className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-full object-cover" 
+                                    alt="Profile"
                                 />
+                            )}
+                            <input
+                                type="file"
+                                accept="image/*"
+                                className="opacity-0 absolute top-0 left-0 w-full h-full cursor-pointer"
+                                onChange={onProfileChange}
+                            />
+                        </div>
+                        
+                        {/* Profile Form */}
+                        <form className="space-y-4" onSubmit={handleSubmit}>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                                <div className="flex flex-col gap-2">
+                                    <label className="font-bold text-lg sm:text-xl">Fullname</label>
+                                    <input
+                                        onChange={handleForm}
+                                        name="Fullname"
+                                        type="text"
+                                        className="p-2 sm:p-3 border border-gray-400 rounded-md text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        value={formValue.Fullname}
+                                    />
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                    <label className="font-bold text-lg sm:text-xl">Email</label>
+                                    <input
+                                        readOnly
+                                        onChange={handleForm}
+                                        name="Email"
+                                        type="text"
+                                        className="p-2 sm:p-3 border border-gray-400 rounded-md text-sm sm:text-base bg-gray-100 cursor-not-allowed"
+                                        value={session.email}
+                                    />
+                                </div>
                             </div>
-
-                            <div />
-                            <div className="col-span-2">
-                                <button className="hover:bg-green-400 w-fit rounded-[10px] bg-blue-600 text-white font-bold p-2">
+                            
+                            <div className="flex justify-start pt-4">
+                                <button 
+                                    type="submit"
+                                    className="bg-blue-600 hover:bg-green-400 text-white font-bold p-2 sm:p-3 rounded-lg transition-colors duration-200 text-sm sm:text-base"
+                                >
                                     <i className="ri-save-3-line mr-2"></i>
                                     Update Profile
                                 </button>
                             </div>
-
-
                         </form>
                     </div>
 
-                </div>
-
-                <div className="p-8 my-8 md:w-7/12 mx-auto bg-white shadow-lg ">
-                    <div className="flex items-center gap-2">
-                        <i className="ri-truck-fill mr-2 text-4xl"></i>
-                        <h1 className="font-bold text-2xl">Delivery Address</h1>
-                    </div>
-                    <hr className="my-6" />
-
-                    <div>
-                        <form className="grid grid-cols-2 gap-6" onSubmit={isAddress ? updateAddress : saveAddress}>
-                            <div className="flex flex-col gap-2 col-span-2">
-                                <label className="font-bold text-xl">Area/Street/Village</label>
+                    {/* Address Section */}
+                    <div className="bg-white shadow-lg rounded-lg p-4 sm:p-6 lg:p-8">
+                        <div className="flex items-center gap-2 mb-6">
+                            <i className="ri-truck-fill text-xl sm:text-2xl"></i>
+                            <h1 className="font-bold text-xl sm:text-2xl">Delivery Address</h1>
+                        </div>
+                        <hr className="my-4 sm:my-6" />
+                        
+                        <form className="space-y-4" onSubmit={isAddress ? updateAddress : saveAddress}>
+                            <div className="flex flex-col gap-2">
+                                <label className="font-bold text-lg sm:text-xl">Area/Street/Village</label>
                                 <input
                                     onChange={handleAddressFormValue}
                                     name="Address"
                                     type="text"
-                                    className="p-2 border border-gray-400"
+                                    className="p-2 sm:p-3 border border-gray-400 rounded-md text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     value={addressFormValue.Address}
                                 />
                             </div>
-
+                            
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                                <div className="flex flex-col gap-2">
+                                    <label className="font-bold text-lg sm:text-xl">City</label>
+                                    <input
+                                        onChange={handleAddressFormValue}
+                                        name="City"
+                                        type="text"
+                                        className="p-2 sm:p-3 border border-gray-400 rounded-md text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        value={addressFormValue.City}
+                                    />
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                    <label className="font-bold text-lg sm:text-xl">State</label>
+                                    <input
+                                        onChange={handleAddressFormValue}
+                                        name="State"
+                                        type="text"
+                                        className="p-2 sm:p-3 border border-gray-400 rounded-md text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        value={addressFormValue.State}
+                                    />
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                    <label className="font-bold text-lg sm:text-xl">Country</label>
+                                    <input
+                                        onChange={handleAddressFormValue}
+                                        type="text"
+                                        name="Country"
+                                        className="p-2 sm:p-3 border border-gray-400 rounded-md text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        value={addressFormValue.Country}
+                                    />
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                    <label className="font-bold text-lg sm:text-xl">Pincode</label>
+                                    <input
+                                        onChange={handleAddressFormValue}
+                                        type="number"
+                                        name="Pincode"
+                                        className="p-2 sm:p-3 border border-gray-400 rounded-md text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        value={addressFormValue.Pincode}
+                                    />
+                                </div>
+                            </div>
+                            
                             <div className="flex flex-col gap-2">
-                                <label className="font-bold text-xl">City</label>
-                                <input
-
-                                    onChange={handleAddressFormValue}
-                                    name="City"
-                                    type="text"
-                                    className="p-2 border border-gray-400"
-                                    value={addressFormValue.City}
-                                />
-                            </div>
-                            <div className="flex flex-col gap-2">
-                                <label className="font-bold text-xl">State</label>
-                                <input
-                                    onChange={handleAddressFormValue}
-                                    name="State"
-                                    type="text"
-                                    className="p-2 border border-gray-400"
-                                    value={addressFormValue.State}
-                                />
-                            </div>
-                            <div className="flex flex-col">
-                                <label className="text-xl font-bold">Country</label>
-                                <input
-                                    onChange={handleAddressFormValue}
-                                    type="text"
-                                    name="Country"
-                                    className="p-2 border border-gray-400"
-                                    value={addressFormValue.Country}
-                                />
-                            </div>
-                            <div className="flex flex-col">
-                                <label className="text-xl font-bold">Pincode</label>
-                                <input
-                                    onChange={handleAddressFormValue}
-                                    type="number"
-                                    name="Pincode"
-                                    className="p-2 border border-gray-400"
-                                    value={addressFormValue.Pincode}
-                                />
-                            </div>
-                            <div className="flex flex-col gap-2 " >
-                                <label className="font-bold text-xl">Mobile</label>
+                                <label className="font-bold text-lg sm:text-xl">Mobile</label>
                                 <input
                                     onChange={handleAddressFormValue}
                                     name="Mobile"
                                     type="number"
-                                    className="p-2 border border-gray-400"
+                                    className="p-2 sm:p-3 border border-gray-400 rounded-md text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     value={addressFormValue.Mobile}
                                 />
                             </div>
-                            <br />
-                            {
-                                isAddress ?
-                                    <button className="hover:bg-green-400 w-fit rounded-[10px] bg-blue-600 text-white font-bold p-2">
+                            
+                            <div className="flex justify-start pt-4">
+                                {isAddress ? (
+                                    <button 
+                                        type="submit"
+                                        className="bg-blue-600 hover:bg-green-400 text-white font-bold p-2 sm:p-3 rounded-lg transition-colors duration-200 text-sm sm:text-base"
+                                    >
                                         <i className="ri-save-3-line mr-2"></i>
                                         Update Address
                                     </button>
-                                    :
-                                    <button className="hover:bg-blue-400 w-fit rounded-[10px] bg-green-600 text-white font-bold p-2">
+                                ) : (
+                                    <button 
+                                        type="submit"
+                                        className="bg-green-600 hover:bg-blue-400 text-white font-bold p-2 sm:p-3 rounded-lg transition-colors duration-200 text-sm sm:text-base"
+                                    >
                                         <i className="ri-save-3-line mr-2"></i>
                                         Submit
                                     </button>
-                            }
+                                )}
+                            </div>
+                        </form>
+                    </div>
 
-
+                    {/* Password Section */}
+                    <div className="bg-white shadow-lg rounded-lg p-4 sm:p-6 lg:p-8">
+                        <div className="flex items-center gap-2 mb-6">
+                            <i className="ri-lock-password-fill text-xl sm:text-2xl"></i>
+                            <h1 className="font-bold text-xl sm:text-2xl">Update Password</h1>
+                        </div>
+                        <hr className="my-4 sm:my-6" />
+                        
+                        <form className="space-y-4" onSubmit={handleChangePassword}>
+                            <div className="flex flex-col gap-2">
+                                <label className="font-bold text-lg sm:text-xl">Current Password</label>
+                                <input
+                                    type="password"
+                                    className="p-2 sm:p-3 border border-gray-400 rounded-md text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="Enter current password"
+                                    value={currentPassword}
+                                    onChange={(e) => setCurrentPassword(e.target.value)}
+                                    required
+                                />
+                            </div>
+                            
+                            <div className="flex flex-col gap-2">
+                                <label className="font-bold text-lg sm:text-xl">New Password</label>
+                                <input
+                                    type="password"
+                                    className="p-2 sm:p-3 border border-gray-400 rounded-md text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="Enter new password"
+                                    value={newPassword}
+                                    onChange={(e) => setNewPassword(e.target.value)}
+                                    required
+                                />
+                            </div>
+                            
+                            <div className="flex justify-start pt-4">
+                                <button
+                                    type="submit"
+                                    className="bg-blue-600 hover:bg-green-600 text-white font-bold p-2 sm:p-3 rounded-lg transition-colors duration-200 text-sm sm:text-base"
+                                >
+                                    <i className="ri-key-line mr-2"></i>
+                                    Update Password
+                                </button>
+                            </div>
                         </form>
                     </div>
                 </div>
-                <div className="p-8 my-8 md:w-7/12 mx-auto bg-white shadow-lg">
-                    <div className="flex items-center gap-2">
-                        <i className="ri-lock-password-fill text-2xl"></i>
-                        <h1 className="font-bold text-2xl">Update Password</h1>
-                    </div>
-                    <hr className="my-6" />
-
-                    <form className="flex flex-col gap-4" onSubmit={handleChangePassword}>
-                        <label className="font-bold text-xl">Current Password</label>
-                        <input
-                            type="password"
-                            className="p-2 border border-gray-400"
-                            placeholder="Enter current password"
-                            value={currentPassword}
-                            onChange={(e) => setCurrentPassword(e.target.value)}
-                            required
-                        />
-
-                        <label className="font-bold text-xl">New Password</label>
-                        <input
-                            type="password"
-                            className="p-2 border border-gray-400"
-                            placeholder="Enter new password"
-                            value={newPassword}
-                            onChange={(e) => setNewPassword(e.target.value)}
-                            required
-                        />
-
-                        <button
-                            type="submit"
-                            className="bg-blue-600 hover:bg-green-600 text-white font-semibold p-2 rounded"
-                        >
-                            <i className="ri-key-line mr-2"></i>
-                            Update Password
-                        </button>
-                    </form>
-                </div>
-
-            </Layout>
-
-        </>
+            </div>
+        </Layout>
     )
 }
+
 export default Setting
