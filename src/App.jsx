@@ -10,7 +10,7 @@ import 'remixicon/fonts/remixicon.css'
 import Orders from "./Components/Admin/Orders"
 import NotFound from "./Components/Admin/NotFound"
 import Layout from "./Components/Admin/Layout"
-import Payments from "./Components/Admin/Payments"
+
 import Setting from "./Components/Admin/Setting"
 import Dashboard from "./Components/Admin/Dashboard"
 import Customers from "./Components/Admin/Customers"
@@ -47,7 +47,6 @@ const App = () => {
             <Route path="/Dashboard" element={<Dashboard />} />
             <Route path="/Setting" element={<Setting />} />
             <Route path="/Customers" element={<Customers />} />
-            <Route path="/Payments" element={<Payments />} />
           </Route>
 
 
