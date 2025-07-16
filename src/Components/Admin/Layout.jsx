@@ -45,11 +45,7 @@ const Layout = ({ children }) => {
             icon: <i className="ri-box-3-fill mr-4"></i>,
             link: '/Orders'
         },
-        {
-            label: 'Payments',
-            icon: <i className="ri-money-rupee-circle-line mr-4"></i>,
-            link: '/Payments'
-        },
+
         
         {
             label: 'Setting',
