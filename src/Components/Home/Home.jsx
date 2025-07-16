@@ -65,7 +65,7 @@ const Home = ({ Slider }) => {
                 console.error('Error fetching products:', err)
                 Swal.fire({
                     icon: 'error',
-                    title: 'Failed to load products',
+                    title: 'Please Login First For Exploring Our Features!',
                     text: 'Please refresh the page to try again.'
                 })
             } finally {
