@@ -180,17 +180,17 @@ const Layout2 = ({ children, update }) => {
                                         <div className="absolute right-0 top-16 bg-white shadow-rose-200 flex flex-col items-start shadow-xl z-[9999] rounded-md animate__animated animate__fadeInDown">
                                             {role === 'admin' && (
                                                 <Link to='/Products' className="hover:bg-rose-200 p-2">
-                                                    <i className="ri-admin-line mr-2"></i> Admin Panel
+                                                    <i className="ri-admin-line mr-2"></i> 
                                                 </Link>
                                             )}
                                             <Link to='/Profile' className="hover:bg-rose-200 p-2">
-                                                <i className="ri-user-3-fill mr-2"></i> My Profile
+                                                <i className="ri-user-3-fill mr-2"></i> 
                                             </Link>
                                             <Link to='/Cart' className="hover:bg-rose-200 p-2 w-full text-left">
-                                                <i className="ri-shopping-cart-fill mr-2"></i> Cart
+                                                <i className="ri-shopping-cart-fill mr-2"></i>
                                             </Link>
                                             <button onClick={() => signOut(auth)} className="hover:bg-rose-200 p-2 w-full text-left">
-                                                <i className="ri-logout-circle-line mr-2"></i> Logout
+                                                <i className="ri-logout-circle-line mr-2"></i> 
                                             </button>
                                         </div>
                                     )
