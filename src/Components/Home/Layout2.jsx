@@ -90,77 +90,114 @@ const Layout2 = ({ children, update }) => {
         )
     return (
         <>
-            <nav className="bg-slate-50 ">
-                <div className="flex items-center sticky top-0 left-0 justify-between shadow-lg p-2">
+            <nav className="bg-slate-50 sticky top-0 left-0 w-full z-50">
+                <div className="flex items-center justify-between shadow-lg p-2">
                     <div className="flex items-center gap-4">
                         <img src={img} className="w-[80px]" />
                         <Link to='/' className="text-2xl text-rose-600 font-bold">SwiftKart</Link>
                     </div>
 
-                    <button className="md:hidden" onClick={() => setOpen(!open)}>
-                        <i className="ri-menu-line font-bold text-4xl"></i>
-                    </button>
-                    <ul className="md:flex gap-8 items-center hidden">
-                        {
-                            menu.map((item, index) => {
-                                return (
-                                    <li key={index}><Link className="text-xl font-semibold hover:text-rose-600" to={item.link}>{item.label}</Link></li>
-                                )
-                            })
-                        }
-                        {
-                            (session && cartCount > 0) &&
-                            <Link to='/Cart' className="text-xl relative">
-                                <i className="ri-shopping-cart-line"></i>
-                                <div className="absolute -top-4  bg-rose-600 text-white rounded-full w-6 text-center h-6 left-4 flex justify-center items-center">
-                                    {cartCount}
-                                </div>
-                            </Link>
-                        }
-                        {
-                            !session &&
-                            <>
-                                <button className="text-xl bg-blue-600 text-white font-semibold p-2 rounded-[10px] hover:bg-rose-600 text-center">
-                                    <a href="/Login">Login</a></button>
-
-                                <button className="text-xl bg-red-600 transition duration-150 text-white font-semibold p-2 rounded-[10px] hover:bg-blue-600 text-center">
-                                    <a href="/SignUp">SignUp</a></button>
-                            </>
-                        }
-                        {
-                            session &&
+                    {/* Mobile Only Auth Buttons or Profile */}
+                    <div className="md:hidden flex items-center gap-4">
+                        {session ? (
                             <button onClick={() => setAccountMenu(!accountMenu)}>
-                                <img src={img2} className="w-[50px] shadow-lg rounded-[10px]" />
-                                {
-                                    accountMenu &&
-                                    <div className="bg-white shadow-rose-200   flex flex-col items-start  shadow-xl  animate__animated animate__fadeInDown">
-                                        {
-
-
-                                            (role && role === 'admin') &&
+                                <img src={img2} className="w-[40px] shadow-lg rounded-[10px]" />
+                                {accountMenu && (
+                                    <div className="absolute right-2 top-16 bg-white shadow-lg flex flex-col p-2 rounded-md z-[9999] animate__animated animate__fadeInDown">
+                                        {role === 'admin' && (
                                             <Link to='/Products' className="hover:bg-rose-200 p-2">
                                                 <i className="ri-admin-line mr-2"></i>
-                                                Admin Panel</Link>
-                                        }
-
+                                                Admin Panel
+                                            </Link>
+                                        )}
                                         <Link to='/Profile' className="hover:bg-rose-200 p-2">
-                                            <i className="ri-user-3-fill mr-2 "></i>
-                                            My  Profile</Link>
-
-                                        <Link to='/Cart' className="hover:bg-rose-200 p-2 w-full text-left">
-                                            <i className="ri-shopping-cart-fill mr-2"></i>
-                                            Cart</Link>
-
-                                        <button className="hover:bg-rose-200 p-2 w-full text-left" onClick={() => signOut(auth)}>
+                                            <i className="ri-user-3-fill mr-2"></i>My Profile
+                                        </Link>
+                                        <Link to='/Cart' className="hover:bg-rose-200 p-2">
+                                            <i className="ri-shopping-cart-fill mr-2"></i>Cart
+                                        </Link>
+                                        <button
+                                            onClick={() => signOut(auth)}
+                                            className="hover:bg-rose-200 p-2 text-left"
+                                        >
                                             <i className="ri-logout-circle-line mr-2"></i>
                                             Logout
                                         </button>
-
                                     </div>
-                                }
-
+                                )}
                             </button>
-                        }
+                        ) : (
+                            <>
+                                <Link to="/Login" className="text-sm bg-blue-600 text-white font-semibold px-3 py-1 rounded hover:bg-rose-600">
+                                    Login
+                                </Link>
+                                <Link to="/SignUp" className="text-sm bg-red-600 text-white font-semibold px-3 py-1 rounded hover:bg-blue-600">
+                                    SignUp
+                                </Link>
+                            </>
+                        )}
+                        {/* Hamburger */}
+                        <button onClick={() => setOpen(!open)}>
+                            <i className="ri-menu-line font-bold text-4xl"></i>
+                        </button>
+                    </div>
+
+                    {/* Desktop Menu */}
+                    <ul className="md:flex gap-8 items-center hidden">
+                        {menu.map((item, index) => (
+                            <li key={index}>
+                                <Link className="text-xl font-semibold hover:text-rose-600" to={item.link}>
+                                    {item.label}
+                                </Link>
+                            </li>
+                        ))}
+
+                        {session && cartCount > 0 && (
+                            <Link to='/Cart' className="text-xl relative">
+                                <i className="ri-shopping-cart-line"></i>
+                                <div className="absolute -top-4 left-4 bg-rose-600 text-white rounded-full w-6 h-6 flex justify-center items-center">
+                                    {cartCount}
+                                </div>
+                            </Link>
+                        )}
+
+                        {!session && (
+                            <>
+                                <Link to="/Login" className="text-xl bg-blue-600 text-white font-semibold p-2 rounded-[10px] hover:bg-rose-600">
+                                    Login
+                                </Link>
+                                <Link to="/SignUp" className="text-xl bg-red-600 text-white font-semibold p-2 rounded-[10px] hover:bg-blue-600">
+                                    SignUp
+                                </Link>
+                            </>
+                        )}
+
+                        {session && (
+                            <button onClick={() => setAccountMenu(!accountMenu)} className="relative">
+                                <img src={img2} className="w-[50px] shadow-lg rounded-[10px]" />
+                                {
+                                    accountMenu && (
+                                        <div className="absolute right-0 top-16 bg-white shadow-rose-200 flex flex-col items-start shadow-xl z-[9999] rounded-md animate__animated animate__fadeInDown">
+                                            {role === 'admin' && (
+                                                <Link to='/Products' className="hover:bg-rose-200 p-2">
+                                                    <i className="ri-admin-line mr-2"></i> Admin Panel
+                                                </Link>
+                                            )}
+                                            <Link to='/Profile' className="hover:bg-rose-200 p-2">
+                                                <i className="ri-user-3-fill mr-2"></i> My Profile
+                                            </Link>
+                                            <Link to='/Cart' className="hover:bg-rose-200 p-2 w-full text-left">
+                                                <i className="ri-shopping-cart-fill mr-2"></i> Cart
+                                            </Link>
+                                            <button onClick={() => signOut(auth)} className="hover:bg-rose-200 p-2 w-full text-left">
+                                                <i className="ri-logout-circle-line mr-2"></i> Logout
+                                            </button>
+                                        </div>
+                                    )
+                                }
+                            </button>
+
+                        )}
                     </ul>
                 </div>
             </nav>

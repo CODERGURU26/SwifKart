@@ -7,7 +7,7 @@ import img4 from './sliderImages/d.jpg'
 import { Swiper, SwiperSlide } from 'swiper/react';
 import 'swiper/css';
 import 'swiper/css/navigation';
-import { Navigation } from 'swiper/modules';
+import { Navigation , Autoplay } from 'swiper/modules';
 import firebaseAppConfig from "../../../util/firebase-config"
 import { getFirestore, addDoc, collection, getDocs, query, where } from "firebase/firestore"
 import { useNavigate } from "react-router-dom"
@@ -378,35 +378,37 @@ const Home = ({ Slider }) => {
         <>
             <Layout2 update={updateUI}>
                 <div>
-                    {
-                        Slider &&
-                        <header>
-                            <Swiper
-                                className="z-[-1]"
-                                navigation={true}
-                                modules={[Navigation]}
-                                slidesPerView={1}
-                                loop={true}
-                                autoplay={{
-                                    delay: 3000,
-                                    disableOnInteraction: false,
-                                }}
-                            >
-                                <SwiperSlide className="w-full">
-                                    <img src={img} className="w-full h-[300px] object-cover rounded-lg" alt="Slider image 1" />
-                                </SwiperSlide>
-                                <SwiperSlide className="w-full">
-                                    <img src={img2} className="w-full h-[300px] object-cover rounded-lg" alt="Slider image 2" />
-                                </SwiperSlide>
-                                <SwiperSlide>
-                                    <img src={img3} className="w-full h-[300px] object-cover rounded-lg" alt="Slider image 3" />
-                                </SwiperSlide>
-                                <SwiperSlide>
-                                    <img src={img4} className="w-full h-[300px] object-cover rounded-lg" alt="Slider image 4" />
-                                </SwiperSlide>
-                            </Swiper>
-                        </header>
-                    }
+                   {
+    Slider &&
+    <header className="relative z-10">
+        <Swiper
+            className="w-full"
+            navigation={true}
+            modules={[Navigation, Autoplay]}
+            slidesPerView={1}
+            loop={true}
+            autoplay={{
+                delay: 3000,
+                disableOnInteraction: false,
+                pauseOnMouseEnter: false,
+                reverseDirection: false,
+            }}
+        >
+            <SwiperSlide className="w-full">
+                <img src={img} className="w-full h-[300px] object-cover rounded-lg" alt="Slider image 1" />
+            </SwiperSlide>
+            <SwiperSlide className="w-full">
+                <img src={img2} className="w-full h-[300px] object-cover rounded-lg" alt="Slider image 2" />
+            </SwiperSlide>
+            <SwiperSlide>
+                <img src={img3} className="w-full h-[300px] object-cover rounded-lg" alt="Slider image 3" />
+            </SwiperSlide>
+            <SwiperSlide>
+                <img src={img4} className="w-full h-[300px] object-cover rounded-lg" alt="Slider image 4" />
+            </SwiperSlide>
+        </Swiper>
+    </header>
+}
 
                     <div className="p-16">
                         <h1 className="text-3xl text-center font-bold">Latest Products</h1>
