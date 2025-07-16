@@ -1,16 +1,47 @@
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useRef } from "react"
+import emailjs from '@emailjs/browser';
+
 import { Link } from "react-router-dom"
 import firebaseAppConfig from "../../../util/firebase-config"
 import { getAuth, onAuthStateChanged, signOut } from "firebase/auth"
 import { collection, where, query, getDocs, getFirestore } from "firebase/firestore"
 import img from './productlogog/c.png'
 import img2 from './user/a.svg'
+import Swal from 'sweetalert2';
 const auth = getAuth(firebaseAppConfig)
 
 const db = getFirestore(firebaseAppConfig)
 
 
 const Layout2 = ({ children, update }) => {
+
+    const form = useRef();
+
+    const sendEmail = (e) => {
+        e.preventDefault();
+
+        emailjs
+            .sendForm('service_3zc48ee', 'template_1ap5e72', form.current, {
+                publicKey: 'XkA69SFjQZahOB6Np',
+            })
+            .then(
+                () => {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Email Sent!',
+                        text: 'Your message has been sent successfully.',
+                    });
+                },
+                (error) => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Failed to Send',
+                        text: `Something went wrong: ${error.text}`,
+                    });
+                }
+            );
+    };
+
     const [session, setSession] = useState(null)
     const [cartCount, setCartCount] = useState(0)
     const [updateUI, setUpdateUI] = useState(false)
@@ -180,17 +211,17 @@ const Layout2 = ({ children, update }) => {
                                         <div className="absolute right-0 top-16 bg-white shadow-rose-200 flex flex-col items-start shadow-xl z-[9999] rounded-md animate__animated animate__fadeInDown">
                                             {role === 'admin' && (
                                                 <Link to='/Products' className="hover:bg-rose-200 p-2">
-                                                    <i className="ri-admin-line mr-2"></i> 
+                                                    <i className="ri-admin-line mr-2"></i>
                                                 </Link>
                                             )}
                                             <Link to='/Profile' className="hover:bg-rose-200 p-2">
-                                                <i className="ri-user-3-fill mr-2"></i> 
+                                                <i className="ri-user-3-fill mr-2"></i>
                                             </Link>
                                             <Link to='/Cart' className="hover:bg-rose-200 p-2 w-full text-left">
                                                 <i className="ri-shopping-cart-fill mr-2"></i>
                                             </Link>
                                             <button onClick={() => signOut(auth)} className="hover:bg-rose-200 p-2 w-full text-left">
-                                                <i className="ri-logout-circle-line mr-2"></i> 
+                                                <i className="ri-logout-circle-line mr-2"></i>
                                             </button>
                                         </div>
                                     )
@@ -243,9 +274,11 @@ const Layout2 = ({ children, update }) => {
                     {/* Contact Us */}
                     <div className="flex flex-col items-center sm:items-start">
                         <h1 className="text-2xl font-semibold">Contact Us</h1>
-                        <form onSubmit={(e) => e.preventDefault()} className="mt-6 flex flex-col space-y-4 w-full sm:w-auto">
+                        <form
+                            ref={form}
+                            onSubmit={sendEmail} className="mt-6 flex flex-col space-y-4 w-full sm:w-auto">
                             <input
-                                name="fullname"
+                                name="name"
                                 className="bg-white text-black p-2 rounded w-full sm:w-auto"
                                 placeholder="Your Name"
                             />
@@ -255,6 +288,7 @@ const Layout2 = ({ children, update }) => {
                                 placeholder="example@gmail.com"
                             />
                             <textarea
+                                name="message"
                                 className="bg-white text-black p-2 rounded w-full sm:w-auto"
                                 placeholder="Write your query here..."
                             />
